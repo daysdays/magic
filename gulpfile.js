@@ -8,8 +8,6 @@ var gulp         = require('gulp'),
     del          = require("del");
 
 gulp.task("dev-magic-css", function() {
-    del("dist/magic-*.css");
-
     return gulp.src("src/core/main.scss")
         .pipe(sass())
         .pipe(autoprefixer())
@@ -23,8 +21,6 @@ gulp.task("dev-magic-css", function() {
 gulp.task("dev-magic-js", function() {
     var LIB_MINJS = __dirname + "/src/lib/minjs/",
         DIR_CORE  = __dirname + "/src/core/";
-
-    del("dist/magic-*.js");
 
     return gulp.src(DIR_CORE + "main.js")
         .pipe(webpack({
