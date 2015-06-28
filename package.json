@@ -4,6 +4,10 @@
   "description": "专注于移动端，精巧高性能的UI框架",
   "author": "木风 <smufeng@126.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.coding.net/niluanxy/magic.git"
+  },
   "devDependencies": {
     "autoprefixer-loader": "^2.0.0",
     "css-loader": "^0.14.5",
