@@ -5,7 +5,6 @@ var gulp         = require('gulp'),
     uglify       = require("gulp-uglify"),
     rename       = require("gulp-rename"),
     webpack      = require("gulp-webpack"),
-    hash         = require("gulp-hash"),
     del          = require("del");
 
 gulp.task("dev-magic-css", function() {
@@ -18,10 +17,6 @@ gulp.task("dev-magic-css", function() {
         .pipe(gulp.dest("dist/"))
         .pipe(minifycss())
         .pipe(rename("magic.min.css"))
-        .pipe(gulp.dest("dist/"))
-        .pipe(rename("magic.css"))
-        .pipe(hash({hashLength: 5}))
-        .pipe(rename({extname: ".min.css"}))
         .pipe(gulp.dest("dist/"))
 })
 
@@ -59,12 +54,13 @@ gulp.task("dev-magic-js", function() {
         .pipe(uglify())
         .pipe(rename("magic.min.js"))
         .pipe(gulp.dest("dist/"))
-        .pipe(rename("magic.js"))
-        .pipe(hash({hashLength: 5}))
-        .pipe(rename({extname: ".min.js"}))
-        .pipe(gulp.dest("dist/"))
 })
 
 gulp.task("clean", function() {
     del("dist/magic*");
+})
+
+gulp.task("default", function() {
+    gulp.run("dev-magic-css");
+    gulp.run("dev-magic-js");
 })
