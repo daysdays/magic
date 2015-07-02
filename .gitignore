@@ -4,6 +4,9 @@
 # 开发目录过滤
 /.sass-cache
 /node_modules
+/dist/*
+!/dist/readme.md
+/src/lib/*
 
 # 忽略设置文件夹
 .settings
