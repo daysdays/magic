@@ -385,6 +385,7 @@ html, body {
       border-top-width: 0px; } }
   @media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
     .bar:before {
+      z-index: 1;
       content: " ";
       position: absolute;
       left: 0px;
@@ -402,6 +403,7 @@ html, body {
       border-bottom-width: 0px; } }
   @media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
     .bar:after {
+      z-index: 1;
       content: " ";
       position: absolute;
       left: 0px;
@@ -656,7 +658,7 @@ input {
   border: 0;
   padding: 0;
   width: 100%;
-  height: 34px;
+  height: 32px;
   line-height: 20px;
   vertical-align: middle; }
 
@@ -675,6 +677,7 @@ textarea {
   -webkit-flex-direction: row;
       -ms-flex-direction: row;
           flex-direction: row;
+  position: relative;
   width: 100%;
   height: 44px;
   text-align: center;
@@ -688,6 +691,7 @@ textarea {
       border-top-width: 0px; } }
   @media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
     .tabs:before {
+      z-index: 1;
       content: " ";
       position: absolute;
       left: 0px;
@@ -705,6 +709,7 @@ textarea {
       border-bottom-width: 0px; } }
   @media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
     .tabs:after {
+      z-index: 1;
       content: " ";
       position: absolute;
       left: 0px;
@@ -723,6 +728,7 @@ textarea {
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
+    position: relative;
     color: #444;
     font-size: 14px;
     text-decoration: none;
@@ -762,6 +768,20 @@ textarea {
     border-bottom-width: 0px; }
     .tabs.tabs-footer:after {
       border-top-width: 0px; }
+  .tabs.tabs-striped .tab-item.actived:before, .tabs.tabs-striped-top .tab-item.actived:before {
+    position: absolute;
+    left: 50%;
+    -webkit-transform: translate(-50%, 0);
+        -ms-transform: translate(-50%, 0);
+            transform: translate(-50%, 0);
+    content: ' ';
+    width: 70%;
+    height: 3px;
+    background-color: #444; }
+  .tabs.tabs-striped .tab-item.actived:before {
+    bottom: 0; }
+  .tabs.tabs-striped-top .tab-item.actived:before {
+    top: 0; }
   .tabs.tabs-stable {
     color: #444;
     border-color: #b2b2b2;
@@ -776,6 +796,8 @@ textarea {
       background-color: #f8f8f8; }
       .tabs.tabs-stable .tab-item.active {
         opacity: 0.3; }
+    .tabs.tabs-stable.tabs-striped .tab-item.actived:before, .tabs.tabs-stable.tabs-striped-top .tab-item.actived:before {
+      background-color: #444; }
   .tabs.tabs-positive {
     color: #fff;
     border-color: #145dd7;
@@ -790,6 +812,8 @@ textarea {
       background-color: #4a87ee; }
       .tabs.tabs-positive .tab-item.active {
         opacity: 0.3; }
+    .tabs.tabs-positive.tabs-striped .tab-item.actived:before, .tabs.tabs-positive.tabs-striped-top .tab-item.actived:before {
+      background-color: #fff; }
 
 .content {
   position: absolute;
@@ -813,59 +837,162 @@ textarea {
   display: block;
   overflow: hidden;
   margin-bottom: 20px;
-  background-color: #FFF; }
-  .list.list-inset {
-    border: 1px solid #ddd;
+  background-color: #FFF;
+  border: 1px solid #ddd;
+  border-width: 1px 0;
+  /*====================================================
+     * item-input 相关代码
+     *====================================================*/
+  /*====================================================
+     * item-avator 相关代码
+     *====================================================*/
+  /*====================================================
+     * label-left,icon-left 公用 相关代码
+     *====================================================*/
+  /*====================================================
+     * label-left 相关代码
+     *====================================================*/
+  /*====================================================
+     * icon-left 相关代码
+     *====================================================*/
+  /*====================================================
+     * icon-right,item-button-right 公用 相关代码
+     *====================================================*/
+  /*====================================================
+     * icon-right 相关代码
+     *====================================================*/
+  /*====================================================
+     * item-button-right 相关代码
+     *====================================================*/ }
+  .list.list-radius {
+    border-width: 1px;
     border-radius: 2px; }
-    .list.list-inset > .item:last-child {
-      border-bottom-width: 0; }
-    .list.list-inset > .item:first-child {
-      border-top-width: 0; }
   .list .item {
     display: block;
     position: relative;
     z-index: 2;
+    line-height: 20px;
+    min-height: 44px;
     font-size: 14px;
     padding: 12px;
-    border-color: #ddd;
-    border-style: solid;
-    border-width: 0 0 1px 0; }
-    .list .item:first-child {
-      border-top-width: 1px; }
-    .list .item.item-input {
-      padding: 6px 12px; }
-      .list .item.item-input input {
-        font-size: inherit; }
-    .list .item.label-left {
-      padding-left: 80px; }
-      .list .item.label-left .label {
-        display: block;
-        position: absolute;
-        left: 12px;
-        min-height: 20px;
-        line-height: 20px;
-        top: 50%;
-        -webkit-transform: translate(0, -50%);
-            -ms-transform: translate(0, -50%);
-                transform: translate(0, -50%); }
-    .list .item.item-button-right {
-      padding-right: 80px; }
-      .list .item.item-button-right .button {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        -webkit-transform: translate(0, -50%);
-            -ms-transform: translate(0, -50%);
-                transform: translate(0, -50%);
-        font-size: 12px;
-        padding: 0 5px;
-        line-height: 30px;
-        min-height: 30px; }
-        .list .item.item-button-right .button.button-clear {
-          padding: 0;
-          font-size: 14px; }
-          .list .item.item-button-right .button.button-clear:before {
-            line-height: inherit !important; }
+    border-bottom: 1px solid #ddd; }
+    .list .item:last-child {
+      border-bottom-width: 0; }
+  .list.list-embed {
+    padding: 0 12px; }
+    .list.list-embed .item {
+      padding: 12px 0; }
+  .list .item.item-input {
+    padding: 6px 12px; }
+    .list .item.item-input input {
+      font-size: inherit; }
+  .list.list-embed .item-input {
+    padding: 6px 0; }
+  .list .item.item-avator .avator,
+  .list .item.item-avator-large .avator {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    bottom: 12px; }
+    .list .item.item-avator .avator img,
+    .list .item.item-avator-large .avator img {
+      width: 100%; }
+  .list .item.item-avator > *,
+  .list .item.item-avator-large > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative; }
+    .list .item.item-avator > *:nth-child(2),
+    .list .item.item-avator-large > *:nth-child(2) {
+      top: -3px; }
+    .list .item.item-avator > *:last-child,
+    .list .item.item-avator-large > *:last-child {
+      bottom: -3px; }
+  .list .item.item-avator {
+    min-height: 76px;
+    padding-left: 76px; }
+    .list .item.item-avator .avator {
+      width: 52px; }
+    .list .item.item-avator > * {
+      line-height: 26px; }
+  .list .item.item-avator-large {
+    min-height: 90px;
+    padding-left: 90px; }
+    .list .item.item-avator-large .avator {
+      width: 66px; }
+    .list .item.item-avator-large > * {
+      line-height: 22px; }
+  .list.list-embed .item.item-avator {
+    padding-left: 64px; }
+  .list.list-embed .item.item-avator-large {
+    padding-left: 78px; }
+  .list.list-embed .item .avator {
+    left: 0; }
+  .list .item.label-left .label,
+  .list .item.icon-left .icon,
+  .list .item.icon-left .icon-small {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    -webkit-transform: translate(0, -50%);
+        -ms-transform: translate(0, -50%);
+            transform: translate(0, -50%); }
+  .list.list-embed .item.label-left .label,
+  .list.list-embed .item.icon-left .icon,
+  .list.list-embed .item.icon-left .icon-small {
+    left: 0; }
+  .list .item.label-left {
+    padding-left: 80px; }
+    .list .item.label-left .label {
+      display: block;
+      min-height: 20px;
+      line-height: 20px; }
+  .list.list-embed .item.label-left {
+    padding-left: 68px; }
+  .list .item.icon-left {
+    padding-left: 47px; }
+    .list .item.icon-left .icon {
+      font-size: 32px; }
+  .list .item.icon-small {
+    padding-left: 37px; }
+    .list .item.icon-small .icon {
+      font-size: 20px; }
+  .list.list-embed .item.icon-left {
+    padding-left: 35px; }
+  .list.list-embed .item.icon-small {
+    padding-left: 25px; }
+  .list .item.icon-right .icon-right,
+  .list .item.item-button-right .button {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    -webkit-transform: translate(0, -50%);
+        -ms-transform: translate(0, -50%);
+            transform: translate(0, -50%); }
+  .list.list-embed .item.icon-right .icon-right,
+  .list.list-embed .item.item-button-right .button {
+    right: 0; }
+  .list .item.icon-right {
+    padding-right: 33px; }
+    .list .item.icon-right .icon-right {
+      font-size: 16px; }
+  .list.list-embed .item.icon-right {
+    padding-right: 21px; }
+  .list .item.item-button-right {
+    padding-right: 80px; }
+    .list .item.item-button-right .button {
+      font-size: 12px;
+      padding: 0 5px;
+      line-height: 30px;
+      min-height: 30px; }
+      .list .item.item-button-right .button.button-clear {
+        padding: 0;
+        font-size: 14px; }
+        .list .item.item-button-right .button.button-clear:before {
+          line-height: inherit !important; }
+  .list.list-embed .item.item-button-right {
+    padding-right: 68px; }
 
 .slider {
   display: block; }
