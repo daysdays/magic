@@ -5,6 +5,9 @@
 /.sass-cache
 /node_modules
 
+# GoodSync临时目录
+_gsdata_
+
 # 忽略设置文件夹
 .settings
 .project
