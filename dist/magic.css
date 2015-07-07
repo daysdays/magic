@@ -305,6 +305,15 @@ table {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; }
 
+.text-justify {
+  text-align: justify; }
+  .text-justify:after {
+    display: inline-block;
+    overflow: hidden;
+    width: 100%;
+    height: 0;
+    content: ''; }
+
 .text-left {
   text-align: left; }
 
@@ -946,13 +955,16 @@ textarea {
   .list.list-embed .item.icon-left .icon-small {
     left: 0; }
   .list .item.label-left {
-    padding-left: 80px; }
+    padding-left: 96px; }
     .list .item.label-left .label {
       display: block;
+      width: 84px;
       min-height: 20px;
       line-height: 20px; }
   .list.list-embed .item.label-left {
-    padding-left: 68px; }
+    padding-left: 84px; }
+    .list.list-embed .item.label-left .label {
+      width: 72px; }
   .list .item.icon-left {
     padding-left: 47px; }
     .list .item.icon-left .icon {
@@ -983,7 +995,7 @@ textarea {
   .list.list-embed .item.icon-right {
     padding-right: 21px; }
   .list .item.item-button-right {
-    padding-right: 80px; }
+    padding-right: 96px; }
     .list .item.item-button-right .button {
       font-size: 12px;
       padding: 0 5px;
@@ -995,7 +1007,7 @@ textarea {
         .list .item.item-button-right .button.button-clear:before {
           line-height: inherit !important; }
   .list.list-embed .item.item-button-right {
-    padding-right: 68px; }
+    padding-right: 84px; }
 
 .slider {
   display: block; }
