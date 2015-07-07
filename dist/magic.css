@@ -890,10 +890,20 @@ textarea {
     border-width: 0 0 1px 0; }
     .list .item:last-child {
       border-bottom-width: 0; }
+    .list .item.item-inline {
+      padding: 4px 12px;
+      min-height: 24px;
+      border-bottom-width: 0; }
+    .list .item.inline-first {
+      margin-top: 6px; }
+    .list .item.inline-last {
+      margin-bottom: 6px; }
   .list.list-embed {
     padding: 0 12px; }
     .list.list-embed .item {
       padding: 12px 0; }
+      .list.list-embed .item.item-inline {
+        padding: 4px 0; }
   .list .item.item-input {
     padding: 6px 12px; }
     .list .item.item-input input {
