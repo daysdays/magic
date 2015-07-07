@@ -838,7 +838,8 @@ textarea {
   overflow: hidden;
   margin-bottom: 20px;
   background-color: #FFF;
-  border: 1px solid #ddd;
+  border-color: #ddd;
+  border-style: solid;
   border-width: 1px 0;
   /*====================================================
      * item-input 相关代码
@@ -864,7 +865,7 @@ textarea {
   /*====================================================
      * item-button-right 相关代码
      *====================================================*/ }
-  .list.list-radius {
+  .list.list-inset {
     border-width: 1px;
     border-radius: 2px; }
   .list .item {
@@ -875,7 +876,9 @@ textarea {
     min-height: 44px;
     font-size: 14px;
     padding: 12px;
-    border-bottom: 1px solid #ddd; }
+    border-color: #ddd;
+    border-style: solid;
+    border-width: 0 0 1px 0; }
     .list .item:last-child {
       border-bottom-width: 0; }
   .list.list-embed {
