@@ -1197,6 +1197,14 @@ $tabs-positive-text:              $button-positive-text !default;
         @include retina-border-radius($list-border-radius);
     }
 
+    &.active-none .item.active {
+        @include retina-border-width(bottom, 1px);
+
+        &:after {
+            display: none;
+        }
+    }
+
     .item {
         display: block;
         position: relative;
@@ -1267,6 +1275,14 @@ $tabs-positive-text:              $button-positive-text !default;
 
             input {
                 font-size: inherit;
+            }
+
+            &.active {
+                @include retina-border-width(bottom, 1px);
+
+                &:after {
+                    display: none;
+                }
             }
         }
     }

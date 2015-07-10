@@ -866,6 +866,10 @@ textarea {
       @media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
         .list.list-inset:before {
           border-radius: 8px; } }
+  .list.active-none .item.active:before {
+    border-bottom-width: 1px; }
+  .list.active-none .item.active:after {
+    display: none; }
   .list .item {
     display: block;
     position: relative;
@@ -929,6 +933,10 @@ textarea {
     padding: 6px 12px; }
     .list .item.item-input input {
       font-size: inherit; }
+    .list .item.item-input.active:before {
+      border-bottom-width: 1px; }
+    .list .item.item-input.active:after {
+      display: none; }
   .list .item.item-avator .avator,
   .list .item.item-avator-large .avator {
     position: absolute;
