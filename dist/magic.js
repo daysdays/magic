@@ -216,6 +216,23 @@
 	                }
 	            },
 
+	            /* 获取当前元素在父类中的位置 */
+	            index : function() {
+	                var parent = this.parent()[0], items;
+
+	                if (parent) {
+	                    items = parent.children;
+
+	                    for(var i=0; i<items.length; i++) {
+	                        if (items[i] == this[0]) {
+	                            return i;
+	                        }
+	                    }
+	                }
+
+	                return -1;  // 默认返回 -1
+	            },
+
 	            /* 设置或读取元素的内联HTML内容 */
 	            html : function(html) {
 	                if (!this[0]) return this;
@@ -1365,7 +1382,13 @@
 	        var $target = $(e.target);
 
 	        do {
-	            clearTimeout($target.data("_active_handle"));
+	            if ($target.hasClass("button")   ||
+	                $target.hasClass("tab-item") ||
+	                $target.hasClass("item")) {
+
+	                clearTimeout($target.data("_active_handle"));
+	                $target.removeClass("active");
+	            }
 
 	            $target = $target.parent();     // 向上递归检测
 	        } while($target[0] && $target[0] != this);
@@ -1383,9 +1406,10 @@
 	            e.stopPropagation();    // 终止冒泡
 
 	            var ev = new Event('tap');
-
+	            
 	            ev.pageX  = touch.pageX;
 	            ev.pageY  = touch.pageY;
+	            ev._target = e.target;
 
 	            do {
 	                tagname = $target[0].tagName;
@@ -1402,7 +1426,10 @@
 	                    e.preventDefault();
 	                    var tohref = $target.attr("href");
 	                    // 手动跳转到指定页面
-	                    if (tohref) location.href = tohref;
+	                    if (tohref) {
+	                        location.href = tohref;
+	                        return false;   // 中止后续检测
+	                    }
 	                }
 
 	                $target = $target.parent();     // 向上递归检测

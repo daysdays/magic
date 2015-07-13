@@ -401,7 +401,7 @@
 /*====================================================
  * retina-border 视网膜屏下 border 生成代码
  *====================================================*/
-$retina-pixel-ratio: 2; // 缩放系数
+$retina-pixel-ratio: 2 !default; // 缩放系数
 
 // 设置 retain 屏幕下的 边框颜色
 @mixin retina-border-color($color, $type: all) {
@@ -462,30 +462,35 @@ $retina-pixel-ratio: 2; // 缩放系数
     }
 }
 
+// retina 屏幕下 视网膜屏幕边框 核心代码
+@mixin retina-border-content($color, $radio) {
+    z-index: 1;
+    content: " ";
+    position: absolute;
+    border-style: solid;
+    border-color: $color;
+    border-width: 0;
+    width: 100%;
+    height: 100%;
+    left: 0; top: 0;
+    pointer-events: none;
+
+    @media (-webkit-min-device-pixel-ratio: $radio),
+            (min-device-pixel-ratio: $radio) {
+
+        left: -50%; top: -50%;
+        width: 200%; height: 200%;
+        transform: scale(.5, .5);
+    }
+}
+
 // 修复 retina 屏幕下 border 变宽的问题
 @mixin retina-border($type, $color) {
 	// $type: top | bottom
 	// $color: color
 
     &:before {
-        z-index: 1;
-        content: " ";
-        position: absolute;
-        border-style: solid;
-        border-color: $color;
-        border-width: 0;
-        width: 100%;
-        height: 100%;
-        left: 0; top: 0;
-        pointer-events: none;
-
-        @media (-webkit-min-device-pixel-ratio: $retina-pixel-ratio),
-                (min-device-pixel-ratio: $retina-pixel-ratio) {
-
-            left: -50%; top: -50%;
-            width: 200%; height: 200%;
-            transform: scale(.5, .5);
-        }
+        @include retina-border-content($color, $retina-pixel-ratio);
 
         @each $pos in $type {
             @if $pos == all {
@@ -739,9 +744,8 @@ $item-icon-padding:               $item-padding + $item-icon-font-size + 3px !de
 $item-icon-font-small:            20px !default;
 $item-icon-padding-small:         $item-padding + $item-icon-font-small + 5px !default;
 
-$item-icon-right-font-size:       16px !default;
+$item-icon-right-font-size:       $button-icon-size !default;
 $item-icon-right-padding:         $item-padding + $item-icon-right-font-size + 5px !default;
-
 
 $item-default-bg:                 #fff !default;
 $item-default-border:             #ddd !default;
@@ -828,7 +832,7 @@ $tabs-positive-text:              $button-positive-text !default;
     background-size: 0;
 
     user-select: none;
-    @include retina-border(top bottom, $bar-default-border);
+    @include retina-border(bottom, $bar-default-border);
 
     // Title inside of a bar is centered
     .title {
@@ -837,6 +841,8 @@ $tabs-positive-text:              $button-positive-text !default;
 
         display: block;
         z-index: $z-index-bar-title;
+
+        user-select: none;
 
         width: 100%;
         height: 100%;
@@ -870,8 +876,6 @@ $tabs-positive-text:              $button-positive-text !default;
         .bar-header {
             top: 0;
 
-            @include retina-border-width(top, 0);
-
             & + .content {
                 top: $bar-height;
             }
@@ -882,6 +886,7 @@ $tabs-positive-text:              $button-positive-text !default;
 
             background-position: top;
 
+            @include retina-border-width(top);
             @include retina-border-width(bottom, 0);
 
             &.item-input-inset {
@@ -991,8 +996,13 @@ $tabs-positive-text:              $button-positive-text !default;
     text-overflow: ellipsis;
     text-decoration: none;
 
+    -webkit-user-drag: none;
+    user-select: none;
+
     color: $button-default-text;
-    border: $button-border-width solid $button-default-border;
+    border-width: $button-border-width;
+    border-style: solid;
+    border-color: $button-default-border;
     border-radius: $button-border-radius;
     background-color: $button-default-bg;
 
@@ -1251,9 +1261,17 @@ $tabs-positive-text:              $button-positive-text !default;
         padding: 0 $item-padding;
 
         .item {
+            padding: $item-padding 0;
+
             &.item-inline {
                 padding: $item-padding/3 0;
             }
+        }
+    }
+    &.list-embed-left {
+        .item {
+            padding-left: 0;
+            margin-left: $item-padding;
         }
     }
 
@@ -1329,6 +1347,15 @@ $tabs-positive-text:              $button-positive-text !default;
             }
         }
     }
+    &.list-embed .item,
+    &.list-embed-left .item {
+        &.item-avator,
+        &.item-avator-large {
+            .avator {
+                left: 0;
+            }
+        }
+    }
 
 
     /*====================================================
@@ -1342,6 +1369,14 @@ $tabs-positive-text:              $button-positive-text !default;
             left: $item-padding;
             top:50%;
             transform: translate(0,-50%);
+        } 
+    }
+    &.list-embed .item,
+    &.list-embed-left .item {
+        &.label-left .label,
+        &.icon-left .icon,
+        &.icon-left .icon-small {
+            left: 0;
         } 
     }
 
@@ -1395,6 +1430,12 @@ $tabs-positive-text:              $button-positive-text !default;
             right: $item-padding;
             top:50%;
             transform: translate(0,-50%);
+        }
+    }
+    &.list-embed .item {
+        &.icon-right .icon-right,
+        &.item-button-right .button {
+            right: 0;
         }
     }
     
@@ -1579,6 +1620,9 @@ $tabs-positive-text:              $button-positive-text !default;
         text-decoration: none;
         @include text-ellipsis();
 
+        -webkit-user-drag: none;
+        user-select: none;
+
         &.disabled,
         &[disabled] {
             opacity: .4;
@@ -1697,5 +1741,39 @@ $tabs-positive-text:              $button-positive-text !default;
 
     .text-center {
         text-align: center;
+    }
+
+    *[class*="retina-border"] {
+        $ratio: 2 !default; // 缩放系数
+        $color: $border-default-color !default;
+
+        position: relative;
+        &:before {
+            @include retina-border-content($color, $ratio);
+        }
+    }
+
+    .retina-border {
+        @include retina-border-width(all);
+    }
+
+    .retina-border-top {
+        @include retina-border-width(top);
+    }
+
+    .retina-border-right {
+        @include retina-border-width(right);
+    }
+
+    .retina-border-bottom {
+        @include retina-border-width(bottom);
+    }
+
+    .retina-border-left {
+        @include retina-border-width(left);
+    }
+
+    .margin-none {
+        margin: 0 !important;
     }
 }
