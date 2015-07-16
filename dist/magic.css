@@ -350,20 +350,30 @@ table {
             -ms-transform: scale(0.5, 0.5);
                 transform: scale(0.5, 0.5); } }
 
-.retina-border:before {
-  border-width: 1px; }
+.retina-border {
+  border-width: 0 !important; }
+  .retina-border:before {
+    border-width: 1px; }
 
-.retina-border-top:before {
-  border-top-width: 1px; }
+.retina-border-top {
+  border-top-width: 0 !important; }
+  .retina-border-top:before {
+    border-top-width: 1px; }
 
-.retina-border-right:before {
-  border-right-width: 1px; }
+.retina-border-right {
+  border-right-width: 0 !important; }
+  .retina-border-right:before {
+    border-right-width: 1px; }
 
-.retina-border-bottom:before {
-  border-bottom-width: 1px; }
+.retina-border-bottom {
+  border-bottom-width: 0 !important; }
+  .retina-border-bottom:before {
+    border-bottom-width: 1px; }
 
-.retina-border-left:before {
-  border-left-width: 1px; }
+.retina-border-left {
+  border-left-width: 0 !important; }
+  .retina-border-left:before {
+    border-left-width: 1px; }
 
 .margin-none {
   margin: 0 !important; }
