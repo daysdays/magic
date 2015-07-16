@@ -44,7 +44,7 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(2);      // 原生对象扩展
+	__webpack_require__(1);      // 原生对象扩展
 
 	(function(window, undefined) {
 	    var Magic = (function() {
@@ -52,7 +52,8 @@
 	        var magic = function(select) {
 	                return new magic.fn._init(select);
 	            },
-	            _UTIL = __webpack_require__(3);
+	            _UTIL = __webpack_require__(2),
+	            _DOM  = __webpack_require__(3);
 
 	        magic.fn = magic.prototype = {
 	            constructor: Magic,
@@ -65,11 +66,8 @@
 	                    this.length = 0;    // 默认无元素
 
 	                    // 判断是否为创建DOM的字符串
-	                    if (select[0] === "<" &&
-	                        select[ select.length - 1 ] === ">" &&
-	                        select.length >= 3) {
-	                        
-	                        var make = _UTIL.makeDom(select);
+	                    if (_DOM.check(select)) {
+	                        var make = _DOM.make(select);
 	                        if (make.childNodes.length == 1) {
 	                            this[0] = make.childNodes[0];
 	                        } else {
@@ -131,6 +129,19 @@
 	            toggleClass: function(className, set) {
 	                _UTIL.toggleClass(this[0], className, set);
 	                
+	                return this;
+	            },
+
+	            /* 只有两种状态的元素切换样式 */
+	            switchClass: function(cls, active) {
+	                if (active /* 激活状态 */) {
+	                    this.addClass(cls.on||'');
+	                    this.removeClass(cls.off||'')
+	                } else {
+	                    this.removeClass(cls.on||'');
+	                    this.addClass(cls.off||'')
+	                }
+
 	                return this;
 	            },
 
@@ -201,19 +212,9 @@
 	                }
 	            },
 
-	            /* 为对象添加HTML对象或者字符串 */
-	            append: function(text) {
-	                this[0] = _UTIL.append(text, this[0]);
-	                return this;
-	            },
-
-
 	            /* 将自身从父元素中删除，如果可以的话 */
 	            remove : function() {
-	                var parent = this.parent()[0];
-	                if (parent) {
-	                    parent.removeChild(this[0]);
-	                }
+	                return _DOM.remove(this[0]);
 	            },
 
 	            /* 获取当前元素在父类中的位置 */
@@ -245,6 +246,45 @@
 	                }
 	            },
 
+	            /* 为对象添加HTML对象或者字符串 */
+	            append: function(text) {
+	                this[0] = _DOM.append(this[0], text);
+	                return this;
+	            },
+
+	            insertBefore: function(text) {
+	                this[0] = _DOM.prepend(this[0], text);
+	                return this;
+	            },
+
+	            /* 元素前插入对象操作的方法 */
+	            before: function(html) {
+	                _DOM.before(this[0], html);
+
+	                return this;
+	            },
+
+	            /* 元素后插入对象操作的方法 */
+	            after: function(html) {
+	                _DOM.after(this[0], html);
+
+	                return this;
+	            },
+
+	            /* 元素外包裹元素 */
+	            wrap: function(html) {
+	                _DOM.wrap(this[0], html);
+
+	                return this;
+	            },
+
+	            /* 选择元素的所有子元素外包裹dom */
+	            wrapAll: function(html) {
+	                _DOM.wrapAll(this[0], html);
+
+	                return this;
+	            },
+
 	            /* 简单判断元素渲染完成后执行某操作 */
 	            render: function(call) {
 	                var handle, that = this, argv = [];
@@ -264,10 +304,7 @@
 
 	            /* 对象的父元素和子元素操作方法 */
 	            parent: function() {
-	                var parent = null;  // 存放父类元素
-	                if (this[0] /* 有对象时执行 */) {
-	                    parent = this[0].parentNode;
-	                }
+	                var parent = _DOM.parent(this[0]);
 
 	                if (parent) return magic(parent);
 	            },
@@ -306,17 +343,33 @@
 	            inheart: _UTIL.inheart,
 
 	            /* 尽可能快的在dom加载完成后执行给定函数 */
-	            ready: __webpack_require__(1),
+	            ready: __webpack_require__(5),
 
 	            /* promise 的支持 */
 	            defer: function() {
-	                var defer = __webpack_require__(5);
+	                var defer = __webpack_require__(6);
 
 	                return new defer.Promise();
 	            },
 
+	            /* 一个简易的转换json的方法 */
+	            parseJSON: function(str) {
+	                var arr = str.split(","), item, key, ret = {};
+
+	                for(var i=0; i<arr.length; i++) {
+	                    item = arr[i];
+	                    item = item.replace(/\s+/g, ' ');
+	                    item = item.replace(/[\'*|\"*]/g, '');
+	                    key  = item.match(/.*(?=\:)/)[0];
+	                    key  = key.replace(/\s+/g, '');
+	                    ret[key] = item.replace(/^.*\:\s*/g, "");
+	                }
+
+	                return ret;
+	            },
+
 	            jsonp: function(url, data) {
-	                var jsonp = __webpack_require__(6), callname, defer;
+	                var jsonp = __webpack_require__(7), callname, defer;
 
 	                defer = this.defer();       // 创建一个defer
 	                data  = data || {};         // data空是创建空对象
@@ -342,168 +395,10 @@
 	    window.$ = Magic;
 	})(window);
 
-	__webpack_require__(10);      // 加载核心UI组件
+	__webpack_require__(11);      // 加载核心UI组件
 
 /***/ },
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! 
-	 * onDomReady.js 1.4.0 (c) 2013 Tubal Martin - MIT license
-	 * github: https://github.com/tubalmartin/ondomready
-	 */
-	;(function (definition) {
-	    if (true) {
-	        // Register as an AMD module.
-	        !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	    } else {
-	        // Browser globals
-	        window['onDomReady'] = definition();
-	    }
-	}(function() {
-	    
-	    'use strict';
-
-	    var win = window,
-	        doc = win.document,
-	        docElem = doc.documentElement,
-
-	        LOAD = "load",
-	        FALSE = false,
-	        ONLOAD = "on"+LOAD,
-	        COMPLETE = "complete",
-	        READYSTATE = "readyState",
-	        ATTACHEVENT = "attachEvent",
-	        DETACHEVENT = "detachEvent",
-	        ADDEVENTLISTENER = "addEventListener",
-	        DOMCONTENTLOADED = "DOMContentLoaded",
-	        ONREADYSTATECHANGE = "onreadystatechange",
-	        REMOVEEVENTLISTENER = "removeEventListener",
-
-	        // W3C Event model
-	        w3c = ADDEVENTLISTENER in doc,
-	        top = FALSE,
-
-	        // isReady: Is the DOM ready to be used? Set to true once it occurs.
-	        isReady = FALSE,
-
-	        // Callbacks pending execution until DOM is ready
-	        callbacks = [];
-	    
-	    // Handle when the DOM is ready
-	    function ready( fn ) {
-	        if ( !isReady ) {
-	            
-	            // Make sure body exists, at least, in case IE gets a little overzealous (ticket #5443).
-	            if ( !doc.body ) {
-	                return defer( ready );
-	            }
-	            
-	            // Remember that the DOM is ready
-	            isReady = true;
-
-	            // Execute all callbacks
-	            while ( fn = callbacks.shift() ) {
-	                defer( fn );
-	            }
-	        }    
-	    }
-
-	    // The ready event handler
-	    function completed( event ) {
-	        // readyState === "complete" is good enough for us to call the dom ready in oldIE
-	        if ( w3c || event.type === LOAD || doc[READYSTATE] === COMPLETE ) {
-	            detach();
-	            ready();
-	        }
-	    }
-
-	    // Clean-up method for dom ready events
-	    function detach() {
-	        if ( w3c ) {
-	            doc[REMOVEEVENTLISTENER]( DOMCONTENTLOADED, completed, FALSE );
-	            win[REMOVEEVENTLISTENER]( LOAD, completed, FALSE );
-	        } else {
-	            doc[DETACHEVENT]( ONREADYSTATECHANGE, completed );
-	            win[DETACHEVENT]( ONLOAD, completed );
-	        }
-	    }
-	    
-	    // Defers a function, scheduling it to run after the current call stack has cleared.
-	    function defer( fn, wait ) {
-	        // Allow 0 to be passed
-	        setTimeout( fn, +wait >= 0 ? wait : 1 );
-	    }
-	    
-	    // Attach the listeners:
-
-	    // Catch cases where onDomReady is called after the browser event has already occurred.
-	    // we once tried to use readyState "interactive" here, but it caused issues like the one
-	    // discovered by ChrisS here: http://bugs.jquery.com/ticket/12282#comment:15
-	    if ( doc[READYSTATE] === COMPLETE ) {
-	        // Handle it asynchronously to allow scripts the opportunity to delay ready
-	        defer( ready );
-
-	    // Standards-based browsers support DOMContentLoaded    
-	    } else if ( w3c ) {
-	        // Use the handy event callback
-	        doc[ADDEVENTLISTENER]( DOMCONTENTLOADED, completed, FALSE );
-
-	        // A fallback to window.onload, that will always work
-	        win[ADDEVENTLISTENER]( LOAD, completed, FALSE );
-
-	    // If IE event model is used
-	    } else {            
-	        // Ensure firing before onload, maybe late but safe also for iframes
-	        doc[ATTACHEVENT]( ONREADYSTATECHANGE, completed );
-
-	        // A fallback to window.onload, that will always work
-	        win[ATTACHEVENT]( ONLOAD, completed );
-
-	        // If IE and not a frame
-	        // continually check to see if the document is ready
-	        try {
-	            top = win.frameElement == null && docElem;
-	        } catch(e) {}
-
-	        if ( top && top.doScroll ) {
-	            (function doScrollCheck() {
-	                if ( !isReady ) {
-	                    try {
-	                        // Use the trick by Diego Perini
-	                        // http://javascript.nwbox.com/IEContentLoaded/
-	                        top.doScroll("left");
-	                    } catch(e) {
-	                        return defer( doScrollCheck, 50 );
-	                    }
-
-	                    // detach all dom ready events
-	                    detach();
-
-	                    // and execute any waiting functions
-	                    ready();
-	                }
-	            })();
-	        } 
-	    } 
-	    
-	    function onDomReady( fn ) { 
-	        // If DOM is ready, execute the function (async), otherwise wait
-	        isReady ? defer( fn ) : callbacks.push( fn );
-	    }
-	    
-	    // Add version
-	    onDomReady.version = "1.4.0";
-	    // Add method to check if DOM is ready
-	    onDomReady.isReady = function(){
-	        return isReady;
-	    };
-	    
-	    return onDomReady;
-	}));
-
-/***/ },
-/* 2 */
 /***/ function(module, exports) {
 
 	/**
@@ -537,6 +432,16 @@
 
 	/**
 	 * Array findBy 工具函数，通过给定的key和值反向查找数据
+	 * eg: var test = [
+	 *     {name: "jack", age: 23, work: true},
+	 *     {name: "tom",  age: 24, work: false},
+	 *     {name: "tony", age: 22, work: false},
+	 *     {name: "kidy", age: 26, work: true},
+	 * ]
+	 *     test.findBy("name", "tony")
+	 * ret:  {name: "tony", age: 22, work: false}
+	 *     test.findBy("name", "tom", true)
+	 * ret:  1
 	 */
 
 	Array.prototype.findBy = function(key, val, index) {
@@ -549,8 +454,31 @@
 	    return undefined;
 	}
 
+	/* 检测当前数组是否包含某元素 */
+	Array.prototype.findIn = function(val) {
+	    for(var i=0; i<this.length; i++) {
+	        if (this[i] == val) {
+	            return true;
+	        }
+	    }
+
+	    return false;
+	}
+
+	/* 删除数组中指定值 */
+	Array.prototype.delBy = function(val, all) {
+	    for(var i=0; i<this.length; i++) {
+	        if (this[i] == val) {
+	            this.splice(i, 1);
+	            if (!all) break;
+	        }
+	    }
+
+	    return this;
+	}
+
 /***/ },
-/* 3 */
+/* 2 */
 /***/ function(module, exports) {
 
 	module.exports = (function() {
@@ -871,45 +799,6 @@
 	    };
 
 	    /**
-	     * 尝试将 text 转为 dom 对象
-	     *
-	     * @param       {String}    text - 要转换的DOM字符串
-	     * @return      {Element}   包含转换好的DOM的一个Body对象
-	     * @author      mufeng  <smufeng@gmail.com>
-	     * @version     0.1     <2015-05-30>
-	     */
-	    util.makeDom = function(text) {
-	        var content = document.implementation.createHTMLDocument("");
-	        content.body.innerHTML = text;    // 将输入字符串转为DOM对象
-	        return content.body;    // 返回包含DOM的Body对象
-	    };
-
-	    /**
-	     * 将字符串或者DOM添加到给定的对象中
-	     * @param       {String||Element}   text - 要添加的字符串或者DOM
-	     * @param       {Element}           el - 要操作的DOM对象
-	     * @return      {Element}           操作后的DOM对象
-	     * @author      mufeng  <smufeng@gmail.com>
-	     * @version     0.1     <2015-05-30>
-	     */
-	    util.append = function(text, el) {
-	        if (typeof text === "string" &&
-	             text[0] === "<" && 
-	             text[ text.length - 1 ] === ">" &&
-	             text.length >= 3) {
-	            var doms = util.makeDom(text).childNodes;
-
-	            for (var i=0; i<doms.length; i++) {
-	                el.appendChild(doms.item(i));
-	            }
-	        } else if (text instanceof Element) {
-	            el.appendChild(text);
-	        }
-
-	        return el;  // 反正处理后的对象
-	    }
-
-	    /**
 	     * 继承给定父类的所有属性
 	     *
 	     * @param       {Object}   p - 要继承的父类对象
@@ -930,6 +819,168 @@
 	    };
 
 	    return util; // 最终返回闭包的对象
+	})();
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	/* 常见的dom操作类库 */
+
+	module.exports = (function() {
+	    var _dom = {}; // 定义返回的对象
+
+	    /**
+	     * 检测字符串是否可以创建为 dom 元素 
+	     */
+	    _dom.check = function(text) {
+	        if (typeof text === "string" &&
+	             text[0] === "<" && 
+	             text[ text.length - 1 ] === ">" &&
+	             text.length >= 3) {
+
+	            return true;
+	        }
+
+	        return false;
+	    }
+
+	    /**
+	     * 尝试将 text 转为 dom 对象
+	     *
+	     * @param       {String}    text - 要转换的DOM字符串
+	     * @return      {Element}   包含转换好的DOM的一个Body对象
+	     * @author      mufeng  <smufeng@gmail.com>
+	     * @version     0.1     <2015-05-30>
+	     */
+	    _dom.make = function(text, context) {
+	        var ret, i, div, tmp, cont, node = [], fragment; // 最终返回的 dom 对象
+
+	        if (_dom.check(text)) {
+	            // 修复执行的上下文
+	            context = context && context.nodeType ? context.ownerDocument || context : document;
+	            fragment = context.createDocumentFragment();
+	            
+	            // 创建一个临时的div对象并插入字符串
+	            div = fragment.appendChild( context.createElement("div") );
+	            div.innerHTML = text;
+
+	            for(i=0; tmp = div.childNodes[i]; i++) node[i] = tmp;
+
+	            // 清除 fragment 的内容
+	            fragment.textContent = "";
+	            for(i=0; tmp=node[i]; i++) fragment.appendChild(tmp);
+
+	            ret = fragment; // 设置返回对象
+	        } else if (text instanceof Element) {
+	            ret = text;     // 如果是DOM元素直接返回
+	        }
+
+	        return ret;    // 返回DOM对象
+	    };
+
+
+	    /**
+	     * 返回元素的父节点
+	     */
+	    _dom.parent = function(el) {
+	        return el && el.parentNode;
+	    }
+
+	    /**
+	     * 移除元素
+	     */
+	    _dom.remove = function(el) {
+	        var parent;
+
+	        if (el && (parent = el.parentNode) &&
+	            parent != document) {
+	            parent.removeChild(el);
+	        }
+
+	        return el;
+	    }   
+
+	    /** 指定元素的前后插入新对象,默认后方 */
+	    _dom._addIn = function(el, html, before) {
+	        var parent, dom;
+
+	        if ( el && (parent = el.parentNode) && 
+	            (dom = _dom.make(html)) ) {
+	            return parent.insertBefore(dom, before ? el : el.nextSibling);
+	        }
+
+	        return;
+	    }
+
+	    /* 制定元素的前方插入对象 */
+	    _dom.before = function(el, html) {
+	        return _dom._addIn(el, html, true)
+	    }
+
+	    _dom.after = function(el, html) {
+	        return _dom._addIn(el, html);
+	    }
+
+	    /* 选择元素的开头插入对象 */
+	    _dom.prepend = function(el, html) {
+	        var dom;
+
+	        if ( el && el.nodeType === 1 && 
+	            (dom = _dom.make(html)) ) {
+	            el.insertBefore(dom, el.firstChild);
+	        }
+
+	        return el;
+	    }
+
+	    /* 选择元素的末尾插入对象 */
+	    _dom.append = function(el, html) {
+	        if ( el && el.appendChild &&
+	            (insert = _dom.make(html)) ) {
+	            el.appendChild(insert)
+	        }
+
+	        return el;  // 返回处理后的对象
+	    }
+
+	    /* 选择元素的外围包裹一层dom代码 */
+	    _dom.wrap = function(el, html) {
+	        var wrap, parent;
+	        if ( el && (parent = el.parentNode)
+	             && (wrap = _dom.make(html)) ) {
+	            
+	            wrap = wrap.firstChild;
+	            wrap = parent.insertBefore(wrap, el);
+	            _dom.append(wrap, el);
+	        }
+
+	        return el;
+	    }
+
+	    /* 给定元素的所有子元素外包裹一层dom代码 */
+	    _dom.wrapAll = function(el, html) {
+	        var wrap, first, items;
+
+	        if ( el && el.nodeType === 1 &&
+	             (wrap = _dom.make(html)) ) {
+
+	            wrap  = wrap.firstChild;
+	            first = el.firstChild;
+	            el.insertBefore(wrap, first);
+
+	            if (first /* 尝试移动子元素 */) {
+	                items = el.childNodes;
+	                for(var i=1; i<items.length; i=1) {
+	                    wrap.appendChild(items[i])
+	                }
+	            }
+	        }
+
+	        return el;
+	    }
+
+	    return _dom;
 	})();
 
 /***/ },
@@ -972,6 +1023,164 @@
 
 /***/ },
 /* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! 
+	 * onDomReady.js 1.4.0 (c) 2013 Tubal Martin - MIT license
+	 * github: https://github.com/tubalmartin/ondomready
+	 */
+	;(function (definition) {
+	    if (true) {
+	        // Register as an AMD module.
+	        !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	    } else {
+	        // Browser globals
+	        window['onDomReady'] = definition();
+	    }
+	}(function() {
+	    
+	    'use strict';
+
+	    var win = window,
+	        doc = win.document,
+	        docElem = doc.documentElement,
+
+	        LOAD = "load",
+	        FALSE = false,
+	        ONLOAD = "on"+LOAD,
+	        COMPLETE = "complete",
+	        READYSTATE = "readyState",
+	        ATTACHEVENT = "attachEvent",
+	        DETACHEVENT = "detachEvent",
+	        ADDEVENTLISTENER = "addEventListener",
+	        DOMCONTENTLOADED = "DOMContentLoaded",
+	        ONREADYSTATECHANGE = "onreadystatechange",
+	        REMOVEEVENTLISTENER = "removeEventListener",
+
+	        // W3C Event model
+	        w3c = ADDEVENTLISTENER in doc,
+	        top = FALSE,
+
+	        // isReady: Is the DOM ready to be used? Set to true once it occurs.
+	        isReady = FALSE,
+
+	        // Callbacks pending execution until DOM is ready
+	        callbacks = [];
+	    
+	    // Handle when the DOM is ready
+	    function ready( fn ) {
+	        if ( !isReady ) {
+	            
+	            // Make sure body exists, at least, in case IE gets a little overzealous (ticket #5443).
+	            if ( !doc.body ) {
+	                return defer( ready );
+	            }
+	            
+	            // Remember that the DOM is ready
+	            isReady = true;
+
+	            // Execute all callbacks
+	            while ( fn = callbacks.shift() ) {
+	                defer( fn );
+	            }
+	        }    
+	    }
+
+	    // The ready event handler
+	    function completed( event ) {
+	        // readyState === "complete" is good enough for us to call the dom ready in oldIE
+	        if ( w3c || event.type === LOAD || doc[READYSTATE] === COMPLETE ) {
+	            detach();
+	            ready();
+	        }
+	    }
+
+	    // Clean-up method for dom ready events
+	    function detach() {
+	        if ( w3c ) {
+	            doc[REMOVEEVENTLISTENER]( DOMCONTENTLOADED, completed, FALSE );
+	            win[REMOVEEVENTLISTENER]( LOAD, completed, FALSE );
+	        } else {
+	            doc[DETACHEVENT]( ONREADYSTATECHANGE, completed );
+	            win[DETACHEVENT]( ONLOAD, completed );
+	        }
+	    }
+	    
+	    // Defers a function, scheduling it to run after the current call stack has cleared.
+	    function defer( fn, wait ) {
+	        // Allow 0 to be passed
+	        setTimeout( fn, +wait >= 0 ? wait : 1 );
+	    }
+	    
+	    // Attach the listeners:
+
+	    // Catch cases where onDomReady is called after the browser event has already occurred.
+	    // we once tried to use readyState "interactive" here, but it caused issues like the one
+	    // discovered by ChrisS here: http://bugs.jquery.com/ticket/12282#comment:15
+	    if ( doc[READYSTATE] === COMPLETE ) {
+	        // Handle it asynchronously to allow scripts the opportunity to delay ready
+	        defer( ready );
+
+	    // Standards-based browsers support DOMContentLoaded    
+	    } else if ( w3c ) {
+	        // Use the handy event callback
+	        doc[ADDEVENTLISTENER]( DOMCONTENTLOADED, completed, FALSE );
+
+	        // A fallback to window.onload, that will always work
+	        win[ADDEVENTLISTENER]( LOAD, completed, FALSE );
+
+	    // If IE event model is used
+	    } else {            
+	        // Ensure firing before onload, maybe late but safe also for iframes
+	        doc[ATTACHEVENT]( ONREADYSTATECHANGE, completed );
+
+	        // A fallback to window.onload, that will always work
+	        win[ATTACHEVENT]( ONLOAD, completed );
+
+	        // If IE and not a frame
+	        // continually check to see if the document is ready
+	        try {
+	            top = win.frameElement == null && docElem;
+	        } catch(e) {}
+
+	        if ( top && top.doScroll ) {
+	            (function doScrollCheck() {
+	                if ( !isReady ) {
+	                    try {
+	                        // Use the trick by Diego Perini
+	                        // http://javascript.nwbox.com/IEContentLoaded/
+	                        top.doScroll("left");
+	                    } catch(e) {
+	                        return defer( doScrollCheck, 50 );
+	                    }
+
+	                    // detach all dom ready events
+	                    detach();
+
+	                    // and execute any waiting functions
+	                    ready();
+	                }
+	            })();
+	        } 
+	    } 
+	    
+	    function onDomReady( fn ) { 
+	        // If DOM is ready, execute the function (async), otherwise wait
+	        isReady ? defer( fn ) : callbacks.push( fn );
+	    }
+	    
+	    // Add version
+	    onDomReady.version = "1.4.0";
+	    // Add method to check if DOM is ready
+	    onDomReady.isReady = function(){
+	        return isReady;
+	    };
+	    
+	    return onDomReady;
+	}));
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*
@@ -1187,7 +1396,7 @@
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module) {/**
@@ -1284,7 +1493,7 @@
 	        }
 	        return data.join('&');
 	    };
-	    if (("function" !== "undefined" && __webpack_require__(8) !== null) && __webpack_require__(9)) {
+	    if (("function" !== "undefined" && __webpack_require__(9) !== null) && __webpack_require__(10)) {
 	        !(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
 	            return JSONP;
 	        }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
@@ -1294,10 +1503,10 @@
 	        this.JSONP = JSONP;
 	    }
 	}).call(this);
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8)(module)))
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -1313,14 +1522,14 @@
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = function() { throw new Error("define cannot be used indirect"); };
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -1328,19 +1537,477 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(11);              // 加载常用组件的点击事件
-	__webpack_require__(12);           // 加载滚动UI组件scroll
-	__webpack_require__(13);              // 加载轮播UI组件slider
-	__webpack_require__(18);               // 加载Modal模态弹框组件
-	__webpack_require__(21);                 // 加载Tip提示组件
-	__webpack_require__(24);             // 加载confirm组件
-	__webpack_require__(27);          // 加载Loading组件
+	__webpack_require__(17);              // 加载常用组件的点击事件
+	__webpack_require__(18);           // 加载滚动UI组件scroll
+	__webpack_require__(19);              // 加载轮播UI组件slider
+	__webpack_require__(22);               // 加载Modal模态弹框组件
+	__webpack_require__(12);                 // 加载Tip提示组件
+	__webpack_require__(25);             // 加载confirm组件
+	__webpack_require__(28);          // 加载Loading组件
+	__webpack_require__(29);              // 加载select组件
 
 /***/ },
-/* 11 */
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	__webpack_require__(13);
+
+	module.exports = (function() {
+	    var Tip = function(text, options) {
+	        this.text        = text || '';
+	        this.handle      = null;
+	        this.textHandle  = null;
+	        this.backHandle  = null;
+	        this.spinHandle  = null;
+	        this.backStyle   = "";
+
+	        this.delayHandle = null;
+	        this.hideHandle  = null;
+	        this.options = $.extend({}, Tip.DEFAULT, options, true);
+	    }
+
+	    Tip.DEFAULT = {
+	        type     : 'toast',
+	        back     : false,
+	        shortTime: 300,            // 默认设置的两个时间
+	        longTime : 800,
+	        show     : 1400,           // 默认显示时间
+	        live     : false,          // 是否永久显示
+	        delay    : 0               // 默认延迟显示时间
+	    }
+
+	    // 转换字符串为具体的时间值
+	    Tip.fixTime = function (opt, key) {
+	        if (typeof opt[key] == "string") {
+	            var key = opt.delay + "Time",
+	                def = Tip.DEFAULT[key];
+
+	            opt[key] = def ? def : opt[key];
+	        }
+	        opt[key] = parseInt(opt[key]) || 0;
+	    }
+
+	    // 清楚对象上的延时操作
+	    Tip.clearHandle = function(obj) {
+	        clearTimeout(obj.delayHandle);
+	        clearTimeout(obj.hideHandle);
+	    }
+
+	    Tip.prototype.init = function() {
+	        var opt = this.options, html, cls;
+	        cls  = "tip_"+$.getRandom();
+	        html = "<div class='tip hide has-back' id='"+cls+"'>"
+	                + "<div class='tip-show'>"+this.text+"</div>"
+	                + "<div class='tip-back'></div></div>";
+
+	        $("body").append(html);     // 添加到页面中
+	        this.handle = $("#"+cls);
+	        this.textHandle = this.handle.find(".tip-show");
+	        this.backHandle = this.handle.find(".tip-back");
+
+	        if (opt.type == "loading") {
+	            opt.live = true; // loading 类型一直显示
+	        }
+
+	        // 将默认背景色存储下来，用于后续显示默认背景色
+	        this.backStyle = this.backHandle.css("background-color");
+
+	        return this;
+	    };
+
+	    
+	    Tip.prototype.show = function(text, option) {
+	        var opt, that = this;   // 定义局部变量
+
+	        // 尝试当只有一个参数且为对象时修正参数
+	        if (option === undefined && typeof text == 'object') {
+	            option = text;  text = undefined;       // 修正变量
+	        }
+
+	        opt = $.extend({}, that.options, option, true);   // 合并选项
+
+	        Tip.fixTime(opt, "delay");      // 转换延时时间值
+	        Tip.fixTime(opt, "show");       // 转换显示时间值
+	        Tip.clearHandle(this);          // 清除可能的延时动作
+
+	        this.delayHandle = setTimeout(function() {
+	            if (opt.back !== false /* 是否显示背景 */) {
+	                if (typeof opt.back == "string") {
+	                    that.backHandle.css("background-color", opt.back)
+	                } else {
+	                    this.backHandle.css("background-color", that.backStyle);
+	                }
+	                
+	                that.handle.addClass("has-back");
+	            } else {
+	                that.handle.removeClass("has-back");
+	            }
+
+	            that.handle.toggleClass("has-loading", opt.type == 'loading');
+	            if (typeof text == "string") that.textHandle.html(text);
+	            if (that.options.type == "loading") {
+	                that.spinHandle = that.textHandle.spinner({
+	                    color: "#FFF"
+	                });
+	            }
+	            that.handle.removeClass("hide").addClass("show");
+	        }, opt.delay);
+
+	        if (!opt.live && opt.show > 0) {
+	            that.hideHandle = setTimeout(function() {
+	                that.hide();
+	            }, opt.delay + opt.show);
+	        }
+
+	        return this;
+	    };
+
+	    Tip.prototype.hide = function() {
+	        Tip.clearHandle(this);          // 清除可能的延时动作
+	        this.handle.removeClass("show").addClass("hide");
+	        if (this.options.type == "loading") {
+	            var span = this.spinHandle;
+	            span && span.stop();
+	        }
+
+	        return this;
+	    };
+
+	    Tip.prototype.destroy = function() {
+	        this.handle.remove();
+	        if (this.options.type == "loading") {
+	            var span = this.spinHandle;
+	            span && span.stop();
+	        }
+	    };
+
+	    /* 尝试绑定方法到 magic 框架的全局对象上 */
+	    if ($ && !$.tip) {
+	        $.extend({tip: function(text, option) {
+	            return new Tip(text, option).init();
+	        }})
+	    };
+	})();
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(14);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(16)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
+				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(15)();
+	exports.push([module.id, ".tip {\n  position: fixed;\n  z-index: 99;\n  display: none; }\n  .tip .tip-show {\n    z-index: 1;\n    color: #FFF;\n    position: fixed;\n    white-space: nowrap;\n    text-align: center;\n    background-color: rgba(0, 0, 0, 0.65);\n    padding: 14px 16px;\n    top: 50%;\n    left: 50%;\n    border-radius: 6px;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .tip .tip-back {\n    display: none;\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.65); }\n  .tip.has-back .tip-back {\n    display: block; }\n  .tip.has-loading .tip-back {\n    display: block;\n    background-color: transparent; }\n  .tip.has-loading .tip-show {\n    width: 74px;\n    height: 74px;\n    background-color: rgba(0, 0, 0, 0.78); }\n  .tip.show {\n    display: block;\n    -webkit-animation-name: fadeIn;\n    animation-name: fadeIn;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .tip.hide {\n    display: none;\n    -webkit-animation-name: fadeOut;\n    animation-name: fadeOut;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@-webkit-keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@-webkit-keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n\n@keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n", ""]);
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	// css base code, injected by the css-loader
+	module.exports = function() {
+		var list = [];
+
+		// return the list of modules as css string
+		list.toString = function toString() {
+			var result = [];
+			for(var i = 0; i < this.length; i++) {
+				var item = this[i];
+				if(item[2]) {
+					result.push("@media " + item[2] + "{" + item[1] + "}");
+				} else {
+					result.push(item[1]);
+				}
+			}
+			return result.join("");
+		};
+
+		// import a list of modules into the list
+		list.i = function(modules, mediaQuery) {
+			if(typeof modules === "string")
+				modules = [[null, modules, ""]];
+			var alreadyImportedModules = {};
+			for(var i = 0; i < this.length; i++) {
+				var id = this[i][0];
+				if(typeof id === "number")
+					alreadyImportedModules[id] = true;
+			}
+			for(i = 0; i < modules.length; i++) {
+				var item = modules[i];
+				// skip already imported module
+				// this implementation is not 100% perfect for weird media query combinations
+				//  when a module is imported multiple times with different media queries.
+				//  I hope this will never occur (Hey this way we have smaller bundles)
+				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+					if(mediaQuery && !item[2]) {
+						item[2] = mediaQuery;
+					} else if(mediaQuery) {
+						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+					}
+					list.push(item);
+				}
+			}
+		};
+		return list;
+	};
+
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	var stylesInDom = {},
+		memoize = function(fn) {
+			var memo;
+			return function () {
+				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
+				return memo;
+			};
+		},
+		isOldIE = memoize(function() {
+			return /msie [6-9]\b/.test(window.navigator.userAgent.toLowerCase());
+		}),
+		getHeadElement = memoize(function () {
+			return document.head || document.getElementsByTagName("head")[0];
+		}),
+		singletonElement = null,
+		singletonCounter = 0;
+
+	module.exports = function(list, options) {
+		if(false) {
+			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
+		}
+
+		options = options || {};
+		// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+		// tags it will allow on a page
+		if (typeof options.singleton === "undefined") options.singleton = isOldIE();
+
+		var styles = listToStyles(list);
+		addStylesToDom(styles, options);
+
+		return function update(newList) {
+			var mayRemove = [];
+			for(var i = 0; i < styles.length; i++) {
+				var item = styles[i];
+				var domStyle = stylesInDom[item.id];
+				domStyle.refs--;
+				mayRemove.push(domStyle);
+			}
+			if(newList) {
+				var newStyles = listToStyles(newList);
+				addStylesToDom(newStyles, options);
+			}
+			for(var i = 0; i < mayRemove.length; i++) {
+				var domStyle = mayRemove[i];
+				if(domStyle.refs === 0) {
+					for(var j = 0; j < domStyle.parts.length; j++)
+						domStyle.parts[j]();
+					delete stylesInDom[domStyle.id];
+				}
+			}
+		};
+	}
+
+	function addStylesToDom(styles, options) {
+		for(var i = 0; i < styles.length; i++) {
+			var item = styles[i];
+			var domStyle = stylesInDom[item.id];
+			if(domStyle) {
+				domStyle.refs++;
+				for(var j = 0; j < domStyle.parts.length; j++) {
+					domStyle.parts[j](item.parts[j]);
+				}
+				for(; j < item.parts.length; j++) {
+					domStyle.parts.push(addStyle(item.parts[j], options));
+				}
+			} else {
+				var parts = [];
+				for(var j = 0; j < item.parts.length; j++) {
+					parts.push(addStyle(item.parts[j], options));
+				}
+				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
+			}
+		}
+	}
+
+	function listToStyles(list) {
+		var styles = [];
+		var newStyles = {};
+		for(var i = 0; i < list.length; i++) {
+			var item = list[i];
+			var id = item[0];
+			var css = item[1];
+			var media = item[2];
+			var sourceMap = item[3];
+			var part = {css: css, media: media, sourceMap: sourceMap};
+			if(!newStyles[id])
+				styles.push(newStyles[id] = {id: id, parts: [part]});
+			else
+				newStyles[id].parts.push(part);
+		}
+		return styles;
+	}
+
+	function createStyleElement() {
+		var styleElement = document.createElement("style");
+		var head = getHeadElement();
+		styleElement.type = "text/css";
+		head.appendChild(styleElement);
+		return styleElement;
+	}
+
+	function createLinkElement() {
+		var linkElement = document.createElement("link");
+		var head = getHeadElement();
+		linkElement.rel = "stylesheet";
+		head.appendChild(linkElement);
+		return linkElement;
+	}
+
+	function addStyle(obj, options) {
+		var styleElement, update, remove;
+
+		if (options.singleton) {
+			var styleIndex = singletonCounter++;
+			styleElement = singletonElement || (singletonElement = createStyleElement());
+			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
+			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
+		} else if(obj.sourceMap &&
+			typeof URL === "function" &&
+			typeof URL.createObjectURL === "function" &&
+			typeof URL.revokeObjectURL === "function" &&
+			typeof Blob === "function" &&
+			typeof btoa === "function") {
+			styleElement = createLinkElement();
+			update = updateLink.bind(null, styleElement);
+			remove = function() {
+				styleElement.parentNode.removeChild(styleElement);
+				if(styleElement.href)
+					URL.revokeObjectURL(styleElement.href);
+			};
+		} else {
+			styleElement = createStyleElement();
+			update = applyToTag.bind(null, styleElement);
+			remove = function() {
+				styleElement.parentNode.removeChild(styleElement);
+			};
+		}
+
+		update(obj);
+
+		return function updateStyle(newObj) {
+			if(newObj) {
+				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
+					return;
+				update(obj = newObj);
+			} else {
+				remove();
+			}
+		};
+	}
+
+	var replaceText = (function () {
+		var textStore = [];
+
+		return function (index, replacement) {
+			textStore[index] = replacement;
+			return textStore.filter(Boolean).join('\n');
+		};
+	})();
+
+	function applyToSingletonTag(styleElement, index, remove, obj) {
+		var css = remove ? "" : obj.css;
+
+		if (styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = replaceText(index, css);
+		} else {
+			var cssNode = document.createTextNode(css);
+			var childNodes = styleElement.childNodes;
+			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
+			if (childNodes.length) {
+				styleElement.insertBefore(cssNode, childNodes[index]);
+			} else {
+				styleElement.appendChild(cssNode);
+			}
+		}
+	}
+
+	function applyToTag(styleElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+		var sourceMap = obj.sourceMap;
+
+		if(media) {
+			styleElement.setAttribute("media", media)
+		}
+
+		if(styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = css;
+		} else {
+			while(styleElement.firstChild) {
+				styleElement.removeChild(styleElement.firstChild);
+			}
+			styleElement.appendChild(document.createTextNode(css));
+		}
+	}
+
+	function updateLink(linkElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+		var sourceMap = obj.sourceMap;
+
+		if(sourceMap) {
+			// http://stackoverflow.com/a/26603875
+			css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + " */";
+		}
+
+		var blob = new Blob([css], { type: "text/css" });
+
+		var oldSrc = linkElement.href;
+
+		linkElement.href = URL.createObjectURL(blob);
+
+		if(oldSrc)
+			URL.revokeObjectURL(oldSrc);
+	}
+
+
+/***/ },
+/* 17 */
 /***/ function(module, exports) {
 
 	/**
@@ -1450,7 +2117,7 @@
 	});
 
 /***/ },
-/* 12 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var scroll = module.exports = (function (window, document, Math) {
@@ -1463,7 +2130,7 @@
 
 	    var utils = (function () {
 	        /* !!! 原文件修改处 */
-	        var eutil = __webpack_require__(3);
+	        var eutil = __webpack_require__(2);
 	        var me    = eutil.inheart(eutil);
 
 	        var _elementStyle = document.createElement('div').style;
@@ -3423,10 +4090,10 @@
 	};
 
 /***/ },
-/* 13 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(14);
+	__webpack_require__(20);
 
 	module.exports = (function() {
 	    var Slider = function(el, options) {
@@ -3451,17 +4118,16 @@
 
 	    Slider.prototype.init = function() {
 	        var that = this, opt = that.options,
-	                   html, childs, scroll;
+	                   childs, $first, scroll, items;
 
-	        html = "<div class='slider_scroll'>"
-	               + that.el.html() + "</div>";
-	        that.el.html(html); // 重新设置内容
-
-	        scroll = that.el.find(".slider_scroll");
+	        items = that.el[0].childNodes;
+	        that.el.wrapAll("<div class='slider_scroll'></div>");
+	        scroll = that.el.children();
 	        childs = scroll.query(".slider-item");
+	        $first = $(childs[0]);
 
-	        this.__render = $(childs[0]).render(function() {
-	            that.pageWidth  = $(childs[0]).width();
+	        this.__render = $first.render(function() {
+	            that.pageWidth = $first.width();
 	            if (opt.scale) {
 	                scroll.height(that.pageWidth*opt.scale);
 	            }
@@ -3555,16 +4221,16 @@
 	})();
 
 /***/ },
-/* 14 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(15);
+	var content = __webpack_require__(21);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(17)(content, {});
+	var update = __webpack_require__(16)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -3581,298 +4247,17 @@
 	}
 
 /***/ },
-/* 15 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(16)();
+	exports = module.exports = __webpack_require__(15)();
 	exports.push([module.id, "mg-slider, .slider {\n  width: 100%;\n  font-size: 0;\n  overflow: hidden; }\n  mg-slider .slider_scroll, .slider .slider_scroll {\n    font-size: 0em;\n    display: inline;\n    height: 100%;\n    white-space: nowrap; }\n    mg-slider .slider_scroll.hasInit, .slider .slider_scroll.hasInit {\n      display: block; }\n    mg-slider .slider_scroll .slider-item, .slider .slider_scroll .slider-item {\n      display: inline-block; }\n  mg-slider .slider-item, .slider .slider-item {\n    display: none;\n    width: 100%; }\n    mg-slider .slider-item:first-child, .slider .slider-item:first-child {\n      display: inline-block; }\n    mg-slider .slider-item img, .slider .slider-item img {\n      width: 100%; }\n", ""]);
 
 /***/ },
-/* 16 */
-/***/ function(module, exports) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	// css base code, injected by the css-loader
-	module.exports = function() {
-		var list = [];
-
-		// return the list of modules as css string
-		list.toString = function toString() {
-			var result = [];
-			for(var i = 0; i < this.length; i++) {
-				var item = this[i];
-				if(item[2]) {
-					result.push("@media " + item[2] + "{" + item[1] + "}");
-				} else {
-					result.push(item[1]);
-				}
-			}
-			return result.join("");
-		};
-
-		// import a list of modules into the list
-		list.i = function(modules, mediaQuery) {
-			if(typeof modules === "string")
-				modules = [[null, modules, ""]];
-			var alreadyImportedModules = {};
-			for(var i = 0; i < this.length; i++) {
-				var id = this[i][0];
-				if(typeof id === "number")
-					alreadyImportedModules[id] = true;
-			}
-			for(i = 0; i < modules.length; i++) {
-				var item = modules[i];
-				// skip already imported module
-				// this implementation is not 100% perfect for weird media query combinations
-				//  when a module is imported multiple times with different media queries.
-				//  I hope this will never occur (Hey this way we have smaller bundles)
-				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
-					if(mediaQuery && !item[2]) {
-						item[2] = mediaQuery;
-					} else if(mediaQuery) {
-						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
-					}
-					list.push(item);
-				}
-			}
-		};
-		return list;
-	};
-
-
-/***/ },
-/* 17 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	var stylesInDom = {},
-		memoize = function(fn) {
-			var memo;
-			return function () {
-				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
-				return memo;
-			};
-		},
-		isOldIE = memoize(function() {
-			return /msie [6-9]\b/.test(window.navigator.userAgent.toLowerCase());
-		}),
-		getHeadElement = memoize(function () {
-			return document.head || document.getElementsByTagName("head")[0];
-		}),
-		singletonElement = null,
-		singletonCounter = 0;
-
-	module.exports = function(list, options) {
-		if(false) {
-			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
-		}
-
-		options = options || {};
-		// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
-		// tags it will allow on a page
-		if (typeof options.singleton === "undefined") options.singleton = isOldIE();
-
-		var styles = listToStyles(list);
-		addStylesToDom(styles, options);
-
-		return function update(newList) {
-			var mayRemove = [];
-			for(var i = 0; i < styles.length; i++) {
-				var item = styles[i];
-				var domStyle = stylesInDom[item.id];
-				domStyle.refs--;
-				mayRemove.push(domStyle);
-			}
-			if(newList) {
-				var newStyles = listToStyles(newList);
-				addStylesToDom(newStyles, options);
-			}
-			for(var i = 0; i < mayRemove.length; i++) {
-				var domStyle = mayRemove[i];
-				if(domStyle.refs === 0) {
-					for(var j = 0; j < domStyle.parts.length; j++)
-						domStyle.parts[j]();
-					delete stylesInDom[domStyle.id];
-				}
-			}
-		};
-	}
-
-	function addStylesToDom(styles, options) {
-		for(var i = 0; i < styles.length; i++) {
-			var item = styles[i];
-			var domStyle = stylesInDom[item.id];
-			if(domStyle) {
-				domStyle.refs++;
-				for(var j = 0; j < domStyle.parts.length; j++) {
-					domStyle.parts[j](item.parts[j]);
-				}
-				for(; j < item.parts.length; j++) {
-					domStyle.parts.push(addStyle(item.parts[j], options));
-				}
-			} else {
-				var parts = [];
-				for(var j = 0; j < item.parts.length; j++) {
-					parts.push(addStyle(item.parts[j], options));
-				}
-				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
-			}
-		}
-	}
-
-	function listToStyles(list) {
-		var styles = [];
-		var newStyles = {};
-		for(var i = 0; i < list.length; i++) {
-			var item = list[i];
-			var id = item[0];
-			var css = item[1];
-			var media = item[2];
-			var sourceMap = item[3];
-			var part = {css: css, media: media, sourceMap: sourceMap};
-			if(!newStyles[id])
-				styles.push(newStyles[id] = {id: id, parts: [part]});
-			else
-				newStyles[id].parts.push(part);
-		}
-		return styles;
-	}
-
-	function createStyleElement() {
-		var styleElement = document.createElement("style");
-		var head = getHeadElement();
-		styleElement.type = "text/css";
-		head.appendChild(styleElement);
-		return styleElement;
-	}
-
-	function createLinkElement() {
-		var linkElement = document.createElement("link");
-		var head = getHeadElement();
-		linkElement.rel = "stylesheet";
-		head.appendChild(linkElement);
-		return linkElement;
-	}
-
-	function addStyle(obj, options) {
-		var styleElement, update, remove;
-
-		if (options.singleton) {
-			var styleIndex = singletonCounter++;
-			styleElement = singletonElement || (singletonElement = createStyleElement());
-			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
-			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
-		} else if(obj.sourceMap &&
-			typeof URL === "function" &&
-			typeof URL.createObjectURL === "function" &&
-			typeof URL.revokeObjectURL === "function" &&
-			typeof Blob === "function" &&
-			typeof btoa === "function") {
-			styleElement = createLinkElement();
-			update = updateLink.bind(null, styleElement);
-			remove = function() {
-				styleElement.parentNode.removeChild(styleElement);
-				if(styleElement.href)
-					URL.revokeObjectURL(styleElement.href);
-			};
-		} else {
-			styleElement = createStyleElement();
-			update = applyToTag.bind(null, styleElement);
-			remove = function() {
-				styleElement.parentNode.removeChild(styleElement);
-			};
-		}
-
-		update(obj);
-
-		return function updateStyle(newObj) {
-			if(newObj) {
-				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
-					return;
-				update(obj = newObj);
-			} else {
-				remove();
-			}
-		};
-	}
-
-	var replaceText = (function () {
-		var textStore = [];
-
-		return function (index, replacement) {
-			textStore[index] = replacement;
-			return textStore.filter(Boolean).join('\n');
-		};
-	})();
-
-	function applyToSingletonTag(styleElement, index, remove, obj) {
-		var css = remove ? "" : obj.css;
-
-		if (styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = replaceText(index, css);
-		} else {
-			var cssNode = document.createTextNode(css);
-			var childNodes = styleElement.childNodes;
-			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
-			if (childNodes.length) {
-				styleElement.insertBefore(cssNode, childNodes[index]);
-			} else {
-				styleElement.appendChild(cssNode);
-			}
-		}
-	}
-
-	function applyToTag(styleElement, obj) {
-		var css = obj.css;
-		var media = obj.media;
-		var sourceMap = obj.sourceMap;
-
-		if(media) {
-			styleElement.setAttribute("media", media)
-		}
-
-		if(styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = css;
-		} else {
-			while(styleElement.firstChild) {
-				styleElement.removeChild(styleElement.firstChild);
-			}
-			styleElement.appendChild(document.createTextNode(css));
-		}
-	}
-
-	function updateLink(linkElement, obj) {
-		var css = obj.css;
-		var media = obj.media;
-		var sourceMap = obj.sourceMap;
-
-		if(sourceMap) {
-			// http://stackoverflow.com/a/26603875
-			css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + " */";
-		}
-
-		var blob = new Blob([css], { type: "text/css" });
-
-		var oldSrc = linkElement.href;
-
-		linkElement.href = URL.createObjectURL(blob);
-
-		if(oldSrc)
-			URL.revokeObjectURL(oldSrc);
-	}
-
-
-/***/ },
-/* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	__webpack_require__(19);
+	__webpack_require__(23);
 
 	module.exports = (function() {
 	    var Modal = function(element, option) {
@@ -3892,16 +4277,17 @@
 
 	        if (opt.hasInsert /* 已插入页面直接处理 */) {
 	            this.el.attr("id", mid);
-	            this.el.addClass("hideOut");
+	            this.el.addClass("hideOut")
+	                   .removeClass("hide");
 	        } else {
-	            html  = "<div class='modal hideOut' id='"+mid+"'>";
-	            this.el.addClass("modal_body");
-	            html += this.el[0].outerHTML+"</div>";
-	            $("body").append(html);     // 添加到页面中
-	            this.el.remove();           // 旧元素从页面删除 
+	            html = "<div class='modal hideOut' id='"+mid+"'></div>";
+	            this.el.addClass("modal_body")
+	                   .removeClass("hide")
+	                   .wrap(html);
+	            this.el = this.el.parent();
+	            $("body").append(this.el);     // 添加到页面中
 	        }
 	        
-	        this.el = $("#"+mid);      //  获得对象的句柄
 	        this.el.addClass("align"+opt.align.toUpFirst());
 
 	        if (opt.autoHide /* 绑定默认关闭方法 */) {
@@ -3955,226 +4341,52 @@
 	    if ($ && $.fn && !$.fn.modal) {
 	        $.fn.extend({modal: function(option) {
 	            var opt = $.extend({}, option);
-	            opt.hasInsert = true;
+	            if (opt.hasInsert === undefined) {
+	                opt.hasInsert = true;
+	            }
 	            return new Modal(this[0], opt).init();
 	        }});
 	    };
 	})();
 
 /***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(20);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(17)(content, {});
-	if(content.locals) module.exports = content.locals;
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		if(!content.locals) {
-			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
-				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss");
-				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-				update(newContent);
-			});
-		}
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 20 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(16)();
-	exports.push([module.id, ".modal {\n  position: fixed;\n  display: none;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  background: rgba(0, 0, 0, 0.6);\n  z-index: 99; }\n  .modal .modal_body {\n    width: 100%;\n    display: block;\n    position: absolute;\n    background: #FFF; }\n  .modal.alignTop .modal_body {\n    top: 0; }\n  .modal.alignBottom .modal_body {\n    bottom: 0; }\n  .modal.alignCenter .modal_body {\n    width: auto;\n    max-width: 80%;\n    min-width: 60%;\n    max-height: 70%;\n    top: 50%;\n    left: 50%;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .modal.showIn {\n    display: block;\n    -webkit-animation-name: slideInUp;\n    animation-name: slideInUp;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .modal.hideOut {\n    display: none;\n    -webkit-animation-name: slideOutDown;\n    animation-name: slideOutDown;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@-webkit-keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n\n@keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n", ""]);
-
-/***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	__webpack_require__(22);
-
-	module.exports = (function() {
-	    var Tip = function(text, options) {
-	        this.text        = text || '';
-	        this.handle      = null;
-	        this.textHandle  = null;
-	        this.backHandle  = null;
-	        this.spinHandle  = null;
-	        this.backStyle   = "";
-
-	        this.delayHandle = null;
-	        this.hideHandle  = null;
-	        this.options = $.extend({}, Tip.DEFAULT, options, true);
-	    }
-
-	    Tip.DEFAULT = {
-	        type     : 'toast',
-	        back     : false,
-	        shortTime: 300,            // 默认设置的两个时间
-	        longTime : 800,
-	        show     : 1400,           // 默认显示时间
-	        live     : false,          // 是否永久显示
-	        delay    : 0               // 默认延迟显示时间
-	    }
-
-	    // 转换字符串为具体的时间值
-	    Tip.fixTime = function (opt, key) {
-	        if (typeof opt[key] == "string") {
-	            var key = opt.delay + "Time",
-	                def = Tip.DEFAULT[key];
-
-	            opt[key] = def ? def : opt[key];
-	        }
-	        opt[key] = parseInt(opt[key]) || 0;
-	    }
-
-	    // 清楚对象上的延时操作
-	    Tip.clearHandle = function(obj) {
-	        clearTimeout(obj.delayHandle);
-	        clearTimeout(obj.hideHandle);
-	    }
-
-	    Tip.prototype.init = function() {
-	        var opt = this.options, html, cls;
-	        cls  = "tip_"+$.getRandom();
-	        html = "<div class='tip hide has-back' id='"+cls+"'>"
-	                + "<div class='tip-show'>"+this.text+"</div>"
-	                + "<div class='tip-back'></div></div>";
-
-	        $("body").append(html);     // 添加到页面中
-	        this.handle = $("#"+cls);
-	        this.textHandle = this.handle.find(".tip-show");
-	        this.backHandle = this.handle.find(".tip-back");
-
-	        if (opt.type == "loading") {
-	            opt.live = true; // loading 类型一直显示
-	        }
-
-	        // 将默认背景色存储下来，用于后续显示默认背景色
-	        this.backStyle = this.backHandle.css("background-color");
-
-	        return this;
-	    };
-
-	    
-	    Tip.prototype.show = function(text, option) {
-	        var opt, that = this;   // 定义局部变量
-
-	        // 尝试当只有一个参数且为对象时修正参数
-	        if (option === undefined && typeof text == 'object') {
-	            option = text;  text = undefined;       // 修正变量
-	        }
-
-	        opt = $.extend({}, that.options, option, true);   // 合并选项
-
-	        Tip.fixTime(opt, "delay");      // 转换延时时间值
-	        Tip.fixTime(opt, "show");       // 转换显示时间值
-	        Tip.clearHandle(this);          // 清除可能的延时动作
-
-	        this.delayHandle = setTimeout(function() {
-	            if (opt.back !== false /* 是否显示背景 */) {
-	                if (typeof opt.back == "string") {
-	                    that.backHandle.css("background-color", opt.back)
-	                } else {
-	                    this.backHandle.css("background-color", that.backStyle);
-	                }
-	                
-	                that.handle.addClass("has-back");
-	            } else {
-	                that.handle.removeClass("has-back");
-	            }
-
-	            that.handle.toggleClass("has-loading", opt.type == 'loading');
-	            if (typeof text == "string") that.textHandle.html(text);
-	            if (that.options.type == "loading") {
-	                that.spinHandle = that.textHandle.spinner({
-	                    color: "#FFF"
-	                });
-	            }
-	            that.handle.removeClass("hide").addClass("show");
-	        }, opt.delay);
-
-	        if (!opt.live && opt.show > 0) {
-	            that.hideHandle = setTimeout(function() {
-	                that.hide();
-	            }, opt.delay + opt.show);
-	        }
-
-	        return this;
-	    };
-
-	    Tip.prototype.hide = function() {
-	        Tip.clearHandle(this);          // 清除可能的延时动作
-	        this.handle.removeClass("show").addClass("hide");
-	        if (this.options.type == "loading") {
-	            var span = this.spinHandle;
-	            span && span.stop();
-	        }
-
-	        return this;
-	    };
-
-	    Tip.prototype.destroy = function() {
-	        this.handle.remove();
-	        if (this.options.type == "loading") {
-	            var span = this.spinHandle;
-	            span && span.stop();
-	        }
-	    };
-
-	    /* 尝试绑定方法到 magic 框架的全局对象上 */
-	    if ($ && !$.tip) {
-	        $.extend({tip: function(text, option) {
-	            return new Tip(text, option).init();
-	        }})
-	    };
-	})();
-
-/***/ },
-/* 22 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(23);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(17)(content, {});
-	if(content.locals) module.exports = content.locals;
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		if(!content.locals) {
-			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
-				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss");
-				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-				update(newContent);
-			});
-		}
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
 /* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(16)();
-	exports.push([module.id, ".tip {\n  position: fixed;\n  z-index: 99;\n  display: none; }\n  .tip .tip-show {\n    z-index: 1;\n    color: #FFF;\n    position: fixed;\n    white-space: nowrap;\n    text-align: center;\n    background-color: rgba(0, 0, 0, 0.65);\n    padding: 14px 16px;\n    top: 50%;\n    left: 50%;\n    border-radius: 6px;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .tip .tip-back {\n    display: none;\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.65); }\n  .tip.has-back .tip-back {\n    display: block; }\n  .tip.has-loading .tip-back {\n    display: block;\n    background-color: transparent; }\n  .tip.has-loading .tip-show {\n    width: 74px;\n    height: 74px;\n    background-color: rgba(0, 0, 0, 0.78); }\n  .tip.show {\n    display: block;\n    -webkit-animation-name: fadeIn;\n    animation-name: fadeIn;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .tip.hide {\n    display: none;\n    -webkit-animation-name: fadeOut;\n    animation-name: fadeOut;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@-webkit-keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@-webkit-keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n\n@keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n", ""]);
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(24);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(16)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
+				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
 
 /***/ },
 /* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(25);
+	exports = module.exports = __webpack_require__(15)();
+	exports.push([module.id, ".modal {\n  position: fixed;\n  display: none;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  background: rgba(0, 0, 0, 0.6);\n  z-index: 99; }\n  .modal .modal_body {\n    width: 100%;\n    margin: 0;\n    display: block;\n    position: absolute;\n    background: #FFF; }\n  .modal.alignTop .modal_body {\n    top: 0; }\n  .modal.alignBottom .modal_body {\n    bottom: 0; }\n  .modal.alignCenter .modal_body {\n    width: auto;\n    max-width: 80%;\n    min-width: 60%;\n    max-height: 70%;\n    top: 50%;\n    left: 50%;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .modal.showIn {\n    display: block;\n    -webkit-animation-name: slideInUp;\n    animation-name: slideInUp;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .modal.hideOut {\n    display: none;\n    -webkit-animation-name: slideOutDown;\n    animation-name: slideOutDown;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@-webkit-keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n\n@keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n", ""]);
+
+/***/ },
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	__webpack_require__(26);
 
 	module.exports = (function() {
 	    var Confirm = function(el, options) {
@@ -4272,16 +4484,16 @@
 	})();
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(26);
+	var content = __webpack_require__(27);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(17)(content, {});
+	var update = __webpack_require__(16)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -4298,14 +4510,14 @@
 	}
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(16)();
+	exports = module.exports = __webpack_require__(15)();
 	exports.push([module.id, ".confirm {\n  display: block;\n  overflow: hidden;\n  padding-top: 44px;\n  border-radius: 5px; }\n  .confirm .content, .confirm .footer {\n    position: static; }\n  .confirm .content, .confirm .footer {\n    background: #FFF; }\n  .confirm .content {\n    font-size: 16px;\n    padding: 16px; }\n  .confirm .footer, .confirm .bar-footer {\n    padding: 10px;\n    padding-top: 0;\n    display: -webkit-box;\n    display: -webkit-flex;\n    display: -ms-flexbox;\n    display: flex;\n    margin: -5px;\n    -webkit-box-orient: horizontal;\n    -webkit-box-direction: normal;\n    -webkit-flex-direction: row;\n    -ms-flex-direction: row;\n    flex-direction: row; }\n    .confirm .footer .button, .confirm .bar-footer .button {\n      -webkit-box-flex: 1;\n      -webkit-flex: 1;\n      -ms-flex: 1;\n      flex: 1;\n      margin: 5px; }\n  .confirm .button {\n    margin: 0; }\n", ""]);
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -4631,6 +4843,226 @@
 	        return new Spinner(option).spin($.query(el));
 	    }})
 	};
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	__webpack_require__(30);
+
+	module.exports = (function() {
+	    var Select = function(el, opt) {
+	        this.el      = $(el);
+	        this.rets    = {};
+	        this.handle  = null;
+	        this.scroll  = null;
+	        this.options = $.extend({}, Select.DEFAULT, opt, true);
+	    }
+
+	    Select.DEFAULT = {
+	        init : null,    // 初始化的对象
+	        call : null,    // 每次选择后回调
+	        mult : false,   // 多选模式
+	        modal: false    // 是否弹框模式
+	    }
+
+	    Select.prototype.init = function(init) {
+	        var that = this, opt = that.options, item, rets;
+
+	        rets = that.rets;           // 设置存放结果的对象
+
+	        item = that.el[0].childNodes;
+	        that.el.addClass("list select");   // 设置样式
+	        for(var i=0; i<item.length; i++) {
+	            if (item.nodeType !== 1) continue;
+
+	            $(item[i]).addClass("item");
+	        }
+
+	        if (opt.modal /* 初始化滚动和弹框效果 */) {
+	            that.el.wrapAll("<div class='item_body list'></div>")
+	                   .removeClass("hide")
+	                   .removeClass("list");
+	            that.handle = that.el.modal({hasInsert: false});
+	            that.scroll = that.el.scroll();
+	        }
+
+	        if (opt.mult) rets = {val:[], pos:[]};
+	        that.set(opt.init || null); // 初始化
+
+	        that.el.on("tap", function(e) {
+	            var pos = $(e._target).index();
+
+	            if (pos != -1) {
+	                if (opt.mult /* 多选模式 */) {
+	                    if (rets.pos.findIn(pos)) {
+	                        rets.pos.delBy(pos);
+	                    } else {
+	                        rets.pos.push(pos);
+	                    }
+	                } else {
+	                    rets.pos = pos;
+	                }
+	            }
+	            
+	            that.set(rets.pos, false);
+	            if (typeof opt.call == "function") {
+	                var val = that.rets.val,
+	                    pos = that.rets.pos;
+	                opt.call.call(that, val, pos);
+	            }
+
+	            if (!opt.mult) that.hide(); // 隐藏弹框
+	        })
+
+	        return this;
+	    };
+
+	    Select.prototype.set = function(sets, cval) {
+	        var item, $icon, $item, val, 
+	            cls, select, mult, opt, rets;
+
+	        opt  = this.options; 
+	        mult = opt.mult;
+	        item = this.el.query(".item");
+	        // 如果是多选状态，则各自返回的数据都是一个数组
+	        rets = mult ? {val:[], pos: []} : {};
+	        sets = mult && !Array.isArray(sets) ? [] : sets;
+	        cval = cval !== undefined ? cval :
+	                    (mult?isNaN(sets[0]):isNaN(sets));
+
+	        for(var i=0; i<item.length; i++) {
+	            if (item[i].nodeType !== 1) continue;
+
+	            $item = $(item[i]);
+	            $icon = $item.find("[toggle]");
+	            cls   = $icon.length?$.parseJSON($icon.attr("toggle")):{};
+
+	            val = $item.attr("val");
+	            select = false; // 当前选中假
+
+	            if (mult /* 多选模式 */) {
+	                if ((cval && sets.findIn(val)) ||
+	                    sets.findIn(i)) {
+	                    select = true;
+	                }
+	            } else {
+	                if ((cval && val == sets) || i == sets) {
+	                    select = true;
+	                    sets = null;    // 后面不在选择
+	                }
+	            }
+
+	            if (select /* 当前选中状态 */) {
+	                if (mult /* 多选状态设置返回值 */) {
+	                    rets.val.push(val);
+	                    rets.pos.push(i);
+	                } else {
+	                    rets.val = val;
+	                    rets.pos = i;
+	                }
+	            }
+
+	            $icon.switchClass(cls, select);
+	        }
+
+	        this.rets = rets;   // 更新存储的值
+	        return this;
+	    }
+
+	    Select.prototype.val = function() {
+	        return this.rets.val;
+	    };
+
+	    Select.prototype.pos = function(index) {
+	        return this.rets.pos;
+	    };
+
+	    Select.prototype.show = function() {
+	        if (this.handle) {
+	            this.handle.show();
+	        }
+
+	        return this;
+	    }
+
+	    Select.prototype.hide = function() {
+	        if (this.handle) {
+	            this.handle.hide();
+	        }
+	    };
+
+	    Select.prototype.toggle = function() {
+	        if (this.handle) {
+	            if (this.handle.isHide) {
+	                this.handle.show();
+	            } else {
+	                this.handle.hide();
+	            }
+	        }
+
+	        return this;
+	    }
+
+	    Select.prototype.destroy = function() {
+	        this.el.remove();
+	        if (this.options.modal) {
+	            this.handle.el.remove();
+	            this.handle  = null;
+	            this.scroll  = null;
+	        }
+	        this.item    = null;
+	        this.rets    = null;
+	        
+	        this.options = null;
+	    }
+
+	    if ($ && $.fn && !$.fn.select) {
+	        $.fn.extend({select: function(opt) {
+	            opt = $.extend({}, opt);
+	            if (opt.mult === undefined) {
+	                opt.mult = !!this.attr("multiple");
+	            }
+	            if (opt.init === undefined) {
+	                opt.init = this.attr("init");
+	            }
+	            return new Select(this[0], opt).init(opt.init);
+	        }})
+	    };
+	})();
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(31);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(16)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
+				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./../../../../node_modules/sass-loader/index.js!./../../../../node_modules/autoprefixer-loader/index.js!./style.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(15)();
+	exports.push([module.id, ".select {\n  overflow: hidden; }\n  .select.modal_body {\n    max-height: 45%; }\n", ""]);
 
 /***/ }
 /******/ ]);

@@ -754,6 +754,7 @@ textarea {
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
+    opacity: 1;
     position: relative;
     color: #444;
     font-size: 14px;
@@ -766,6 +767,8 @@ textarea {
        -moz-user-select: none;
         -ms-user-select: none;
             user-select: none; }
+    .tabs .tab-item.active {
+      opacity: 0.3; }
     .tabs .tab-item.disabled,
     .tabs .tab-item[disabled] {
       opacity: .4;
@@ -789,14 +792,16 @@ textarea {
     position: absolute;
     left: 0;
     right: 0; }
+  .tabs.border-bottom:before,
+  .tabs.tabs-header:before {
+    border-top-width: 0; }
+  .tabs.border-bottom:before,
+  .tabs.tabs-header:before {
+    border-bottom-width: 1px; }
   .tabs.tabs-header {
     top: 0; }
-    .tabs.tabs-header:before {
-      border-top-width: 0; }
   .tabs.tabs-footer {
     bottom: 0; }
-    .tabs.tabs-footer:before {
-      border-bottom-width: 0; }
   .tabs.tabs-striped .tab-item.actived:before, .tabs.tabs-striped-top .tab-item.actived:before {
     position: absolute;
     left: 50%;
@@ -820,10 +825,7 @@ textarea {
       border-color: #b2b2b2; }
     .tabs.tabs-stable .tab-item {
       color: #444;
-      opacity: 1;
       background-color: #f8f8f8; }
-      .tabs.tabs-stable .tab-item.active {
-        opacity: 0.3; }
     .tabs.tabs-stable.tabs-striped .tab-item.actived:before, .tabs.tabs-stable.tabs-striped-top .tab-item.actived:before {
       background-color: #444; }
   .tabs.tabs-positive {
@@ -835,10 +837,7 @@ textarea {
       border-color: #145dd7; }
     .tabs.tabs-positive .tab-item {
       color: #fff;
-      opacity: 1;
       background-color: #4a87ee; }
-      .tabs.tabs-positive .tab-item.active {
-        opacity: 0.3; }
     .tabs.tabs-positive.tabs-striped .tab-item.actived:before, .tabs.tabs-positive.tabs-striped-top .tab-item.actived:before {
       background-color: #fff; }
 
