@@ -674,6 +674,7 @@ $bar-height:                      44px !default;
 $bar-title-font-size:             16px !default;
 $bar-padding-portrait:            5px !default;
 $bar-padding-landscape:           5px !default;
+$bar-inline-height:               $bar-height - $bar-padding-portrait*2 !default;   
 $bar-transparency:                1 !default;
 
 $bar-default-bg:                  rgba($color-light, $bar-transparency) !default;
@@ -816,6 +817,10 @@ $tabs-positive-text:              $button-positive-text !default;
         .button {
             color: $color;
         }
+
+        .input {
+            border-color: $border-color;
+        }
     }
 }
 
@@ -919,6 +924,14 @@ $tabs-positive-text:              $button-positive-text !default;
             width: 40%;
             font-size: $font-size-base;
         }
+    }
+
+    .input {
+        padding: 0 $bar-title-font-size/2;
+        height: $bar-inline-height;
+        line-height: $bar-inline-height;
+        border-radius: $border-radius-base;
+        border: 1px solid $bar-default-border;
     }
 
     .button {
@@ -1218,10 +1231,6 @@ $tabs-positive-text:              $button-positive-text !default;
         font-size: $item-font-size;
         padding: $item-padding;
         @include retina-border(bottom, $item-default-border);
-    
-        >* {
-            z-index: 2;
-        }
 
         &[href].active {
             @include retina-border-width(bottom, 0);
@@ -1229,7 +1238,7 @@ $tabs-positive-text:              $button-positive-text !default;
             &:after {
                 content: " ";
                 position: absolute;
-                z-index: 0;
+                z-index: -1;
                 top: 0;
                 height: 100%;
                 left: -50%;
@@ -1297,6 +1306,7 @@ $tabs-positive-text:              $button-positive-text !default;
         &.item-avator,
         &.item-avator-large {
             .avator {
+                border-radius: $list-border-radius;
                 position: absolute;
                 top: $item-padding;
                 left: $item-padding;
@@ -1307,7 +1317,7 @@ $tabs-positive-text:              $button-positive-text !default;
                 }
             }
 
-            >* {
+            .line {
                 @include text-ellipsis();
                 position: relative;
 
@@ -1329,7 +1339,7 @@ $tabs-positive-text:              $button-positive-text !default;
                 width: $item-avator;
             }
 
-            >* {
+            .line {
                 line-height: $item-avator/2;
             }
         }
@@ -1342,7 +1352,7 @@ $tabs-positive-text:              $button-positive-text !default;
                 width: $item-avator-large;
             }
 
-            >* {
+            .line {
                 line-height: $item-avator-large/3;
             }
         }
@@ -1354,6 +1364,14 @@ $tabs-positive-text:              $button-positive-text !default;
             .avator {
                 left: 0;
             }
+        }
+
+        &.item-avator {
+            padding-left: $item-padding + $item-avator;
+        }
+
+        &.item-avator-large {
+            padding-left: $item-padding + $item-avator-large;
         }
     }
 

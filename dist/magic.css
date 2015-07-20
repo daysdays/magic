@@ -496,6 +496,8 @@ html, body {
       border-color: #b2b2b2; }
     .bar.bar-stable .button {
       color: #444; }
+    .bar.bar-stable .input {
+      border-color: #b2b2b2; }
   .bar.bar-positive {
     color: #fff;
     background-color: #4a87ee;
@@ -510,6 +512,8 @@ html, body {
       border-color: #145dd7; }
     .bar.bar-positive .button {
       color: #fff; }
+    .bar.bar-positive .input {
+      border-color: #145dd7; }
   .bar-header {
     top: 0; }
     .bar-header + .content {
@@ -537,6 +541,12 @@ html, body {
   .bar.text-button .button {
     width: 40%;
     font-size: 14px; }
+  .bar .input {
+    padding: 0 8px;
+    height: 34px;
+    line-height: 34px;
+    border-radius: 4px;
+    border: 1px solid #ddd; }
   .bar .button {
     font-size: 16px;
     font-weight: 400;
@@ -962,14 +972,12 @@ textarea {
           -webkit-transform: scale(0.5, 0.5);
               -ms-transform: scale(0.5, 0.5);
                   transform: scale(0.5, 0.5); } }
-    .list .item > * {
-      z-index: 2; }
     .list .item[href].active:before {
       border-bottom-width: 0; }
     .list .item[href].active:after {
       content: " ";
       position: absolute;
-      z-index: 0;
+      z-index: -1;
       top: 0;
       height: 100%;
       left: -50%;
@@ -1002,6 +1010,7 @@ textarea {
       font-size: inherit; }
   .list .item.item-avator .avator,
   .list .item.item-avator-large .avator {
+    border-radius: 4px;
     position: absolute;
     top: 12px;
     left: 12px;
@@ -1009,37 +1018,43 @@ textarea {
     .list .item.item-avator .avator img,
     .list .item.item-avator-large .avator img {
       width: 100%; }
-  .list .item.item-avator > *,
-  .list .item.item-avator-large > * {
+  .list .item.item-avator .line,
+  .list .item.item-avator-large .line {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative; }
-    .list .item.item-avator > *:nth-child(2),
-    .list .item.item-avator-large > *:nth-child(2) {
+    .list .item.item-avator .line:nth-child(2),
+    .list .item.item-avator-large .line:nth-child(2) {
       top: -3px; }
-    .list .item.item-avator > *:last-child,
-    .list .item.item-avator-large > *:last-child {
+    .list .item.item-avator .line:last-child,
+    .list .item.item-avator-large .line:last-child {
       bottom: -3px; }
   .list .item.item-avator {
     min-height: 76px;
     padding-left: 76px; }
     .list .item.item-avator .avator {
       width: 52px; }
-    .list .item.item-avator > * {
+    .list .item.item-avator .line {
       line-height: 26px; }
   .list .item.item-avator-large {
     min-height: 90px;
     padding-left: 90px; }
     .list .item.item-avator-large .avator {
       width: 66px; }
-    .list .item.item-avator-large > * {
+    .list .item.item-avator-large .line {
       line-height: 22px; }
   .list.list-embed .item.item-avator .avator,
   .list.list-embed .item.item-avator-large .avator,
   .list.list-embed-left .item.item-avator .avator,
   .list.list-embed-left .item.item-avator-large .avator {
     left: 0; }
+  .list.list-embed .item.item-avator,
+  .list.list-embed-left .item.item-avator {
+    padding-left: 64px; }
+  .list.list-embed .item.item-avator-large,
+  .list.list-embed-left .item.item-avator-large {
+    padding-left: 78px; }
   .list .item.label-left .label,
   .list .item.icon-left .icon,
   .list .item.icon-left .icon-small {
