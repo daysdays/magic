@@ -54,7 +54,7 @@
 	            },
 	            _UTIL  = __webpack_require__(2),
 	            _DOM   = __webpack_require__(3),
-	            _EVENT = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"event\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	            _EVENT = __webpack_require__(4);
 
 	        magic.fn = magic.prototype = {
 	            constructor: Magic,
@@ -105,7 +105,7 @@
 
 	            /* 简单的查询方法，返回标准的dom对象 */
 	            query: function(select) {
-	                return __webpack_require__(4)(select, this[0]);
+	                return __webpack_require__(5)(select, this[0]);
 	            },
 
 	            /* 在子类中查找对象 */
@@ -366,7 +366,7 @@
 	        /* 绑定一些常用的静态方法 */
 	        magic.extend({
 	            /* 简单的查询方法，返回标准的dom对象 */
-	            query: __webpack_require__(4),
+	            query: __webpack_require__(5),
 
 	            /* 返回一个节流执行的函数 */
 	            delayCall: _UTIL.delayCall,
@@ -383,11 +383,11 @@
 	            inheart: _UTIL.inheart,
 
 	            /* 尽可能快的在dom加载完成后执行给定函数 */
-	            ready: __webpack_require__(5),
+	            ready: __webpack_require__(6),
 
 	            /* promise 的支持 */
 	            defer: function() {
-	                var defer = __webpack_require__(6);
+	                var defer = __webpack_require__(7);
 
 	                return new defer.Promise();
 	            },
@@ -413,7 +413,7 @@
 	            },
 
 	            jsonp: function(url, data) {
-	                var jsonp = __webpack_require__(7), callname, defer;
+	                var jsonp = __webpack_require__(8), callname, defer;
 
 	                defer = this.defer();       // 创建一个defer
 	                data  = data || {};         // data空是创建空对象
@@ -443,8 +443,8 @@
 	    window.$ = Magic;
 	})(window);
 
-	__webpack_require__(11);       // 加载核心UI组件
-	__webpack_require__(32);         // 加载硬件扩展方法
+	__webpack_require__(12);       // 加载核心UI组件
+	__webpack_require__(33);         // 加载硬件扩展方法
 
 
 /***/ },
@@ -1094,6 +1094,221 @@
 /* 4 */
 /***/ function(module, exports) {
 
+	module.exports = (function() {
+	    var vine = (function(
+	        expando,          //The amount of milliseconds right now, unique identifier shorter than Math.random()
+	        uid,              //A unique identifier, attached with expando to link to stored data
+	        data,             //An object storing data(stored in central store for simplicity and to prevent leakage)
+	        defaultPrevented, //Shortening of .defaultPrevented
+	        addEventListener, //Shortening of .addEventListener
+	        attachEvent,      //Shortening of .attachEvent
+	        document,         //Reference to document
+	        vine,             //Placeholder for vine object
+	        Event             //Placeholder for vine.Event
+	    ){
+
+	        //Initialize and fetch the data on an object
+	        function _data (
+	            object, //Object to get data from
+	            id      //Placeholder for unique id
+	        ) {
+	            id = object[expando] = object[expando] || uid++
+	            return data[id] || (data[id] = {b: {}, e: {}})
+	        }
+
+	        //If an object is a string, get the element with that ID
+	        function id (
+	            object  //Object to test
+	        ) {
+	            return object.charAt ? document.getElementById(object) : object
+	        }
+
+	        //Create vine object
+	        vine = {
+
+	            //Expose data function for plugins
+	            d: _data,
+	            id: id,
+
+	            //A constructor to build a normalized event
+	            Event: Event = function (
+	                e,  //Objects to mix in properties of
+	                x,  //Placeholder for iteration
+	                t   //Placeholder for 'this' to shorten code
+	            ) {
+	                t = this
+	                for (x in e) t[x] = t[x] || e[x]
+	                t.timestamp = +new Date
+	                t.target || (t.target = t.srcElement)
+	            },
+
+	            //Bind a function to an element
+	            bind: function (
+	                object, //Object to attach event to
+	                type,   //Type of event (optinally prefixed with a namespace)
+	                fn,     //Handler to bind
+	                evt_dat,//Data to bind with
+	                dat,    //Placeholder for element's data
+	                ns,     //Placeholder for namespace
+	                arr,    //Placeholder for an array
+	                l       //Placeholder for length
+	            ) {
+
+	                //If multiple types are provided, bind for each
+	                if ((l = (arr = type.split(" ")).length) > 1) {
+	                    while (l--) vine.bind(object, arr[l], fn)
+
+	                    //otherwise...
+	                } else {
+	                    //Get the element if object is a string
+	                    object = id(object)
+
+	                    //Get data
+	                    dat = _data(object)
+
+	                    //Check for a namespace, if one is present assign to namespace variable
+	                    if (ns = /^(.+)\.([^\.]+)$/.exec(type)) {
+	                        type = ns[2]
+	                        ns = ns[1]
+	                    }
+
+	                    //Initialize the array of functions, then push the handler and other data to it
+	                    (dat.e[type] || (dat.e[type] = [])).push({
+	                        n: ns,
+	                        f: fn,
+	                        d: evt_dat || {}
+	                    })
+
+	                    //Bind if the object is an element
+	                    !dat.b[type] && (dat.b[type] = 1, object[addEventListener]
+	                        ? object[addEventListener](type, function(e){
+	                        vine.trigger(object, type, e)[defaultPrevented] && e.preventDefault()
+	                    },null)
+	                        : object[attachEvent]("on" + type, function(){
+	                        return !vine.trigger(object, type, window.event)[defaultPrevented]
+	                    }));
+	                }
+	            },
+	            trigger: function (
+	                object,   //Object to trigger event on
+	                type,     //Type of event to trigger
+	                evt,      //Optional object to mix in to the event passed
+	                handlers, //Placeholder for an array of handlers
+	                x, len,   //Placeholders for iteration
+	                event,    //Placeholder for genereated event
+	                prev,     //Placeholder for determining if default is prevented
+	                handler   //Placeholder for specific handler
+	            ) {
+	                object = id(object)
+
+
+	                if (!evt && object.nodeType) {
+	                    if (object.fireEvent) {
+	                        try{
+	                            return new Event({defaultPrevented:object[type === "click" ? type : fireEvent]("on" + type)})
+	                        }catch(e){}
+	                    } else {
+	                        //make the event, init it, execute it, then return
+	                        event = document.createEvent((
+
+	                            //if it's a mouse event, use mouse event init
+	                            init=/click|mousedown|mouseup|mousemove/.test(type)
+
+	                        ) ? "MouseEvents" : "HTMLEvents")
+	                        event[init ? "initMouseEvent" : "initEvent"](type, true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+	                        object.dispatchEvent(event)
+	                        return event
+	                    }
+	                }
+	                event = new Event(evt || {})
+
+	                if (handlers = _data(object).e[type]) {
+	                    for (x = 0, len = handlers.length; x < len; x++) {
+	                        if (handler = handlers[x]) {
+	                            event.namespace = handler.n
+	                            event.data = handler.d
+	                            prev = prev || handler.f.call(object, event) === false
+	                        }
+	                    }
+
+	                    event[defaultPrevented] = event[defaultPrevented] || prev
+	                }
+	                return event
+	            },
+	            unbind:function (
+	                object, //Object to detach event from
+	                type,   //Type of event to unbind
+	                dat,    //Placeholder for data attached to object
+	                x, y, len, a//Placeholders for iteration
+	            ) {
+	                object = id(object)
+
+	                //If only an object is given, remove data
+	                if (!type) {
+	                    //remove both the id on the object and the object from data object to reduce memory usage
+	                    return data[object[expando]] = object[expando] = null
+	                }
+	                dat = _data(object)
+
+	                //If type is a string
+	                if (type.charAt) {
+	                    //if it is a namespace
+	                    if (type.charAt(0) === ".") {
+	                        //go through all handlers and test for the namespace
+	                        type = type.substring(1)
+	                        for (y in dat.e) {
+	                            a = dat.e[y]
+	                            len = a.length
+	                            for (x = 0; x < len;x++) {
+	                                a[x].n === type && (a[x] = null)
+	                            }
+	                        }
+	                        //Otherwise just reset the entire type
+	                    } else {
+	                        dat.e[type] = []
+	                    }
+	                    //If type is instead a function, remove all instances of that function
+	                } else {
+	                    for (y in dat.e) {
+	                        a = dat.e[y]
+	                        len = a.length
+	                        for (x = 0; x < len; x++) {
+	                            a[x].f === type && (a[x] = null)
+	                        }
+	                    }
+	                }
+	            }
+	        }
+
+	        //Functions on the event's prototype
+	        Event.prototype = {
+	            defaultPrevented: false,
+	            preventDefault: function () {
+	                this[defaultPrevented] = true
+	            }
+	        }
+
+	        return vine
+
+	    })(+(new Date), 1, {}, "defaultPrevented", "addEventListener", "attachEvent", document);
+
+	    vine.once = function(target, type, handler, data, h){
+	        target = vine.id(target);
+	        vine.bind(target, type, h = function(e){
+	            handler.call(target, e);
+	            vine.unbind(target, h)
+	        }, data);
+	    }
+
+	    return vine;
+	})();
+
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
 	/**
 	 * 一个简单的JS选择器
 	 *
@@ -1130,7 +1345,7 @@
 	};
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! 
@@ -1288,7 +1503,7 @@
 	}));
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*
@@ -1504,7 +1719,7 @@
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module) {/**
@@ -1601,7 +1816,7 @@
 	        }
 	        return data.join('&');
 	    };
-	    if (("function" !== "undefined" && __webpack_require__(9) !== null) && __webpack_require__(10)) {
+	    if (("function" !== "undefined" && __webpack_require__(10) !== null) && __webpack_require__(11)) {
 	        !(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
 	            return JSONP;
 	        }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
@@ -1611,10 +1826,10 @@
 	        this.JSONP = JSONP;
 	    }
 	}).call(this);
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(9)(module)))
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -1630,14 +1845,14 @@
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	module.exports = function() { throw new Error("define cannot be used indirect"); };
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -1645,25 +1860,25 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	window.$u = {};                             // 定义一个全局的快捷UI对象
 
-	__webpack_require__(17);              // 加载常用组件的点击事件
-	__webpack_require__(18);           // 加载滚动UI组件scroll
-	__webpack_require__(19);              // 加载轮播UI组件slider
-	__webpack_require__(22);               // 加载Modal模态弹框组件
-	__webpack_require__(12);                 // 加载Tip提示组件
-	__webpack_require__(25);             // 加载confirm组件
-	__webpack_require__(28);          // 加载Loading组件
-	__webpack_require__(29);              // 加载select组件
+	__webpack_require__(18);              // 加载常用组件的点击事件
+	__webpack_require__(19);           // 加载滚动UI组件scroll
+	__webpack_require__(20);              // 加载轮播UI组件slider
+	__webpack_require__(23);               // 加载Modal模态弹框组件
+	__webpack_require__(13);                 // 加载Tip提示组件
+	__webpack_require__(26);             // 加载confirm组件
+	__webpack_require__(29);          // 加载Loading组件
+	__webpack_require__(30);              // 加载select组件
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(13);
+	__webpack_require__(14);
 
 	module.exports = (function() {
 	    var Tip = function(text, options) {
@@ -1817,16 +2032,16 @@
 	})();
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(14);
+	var content = __webpack_require__(15);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -1843,14 +2058,14 @@
 	}
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(15)();
+	exports = module.exports = __webpack_require__(16)();
 	exports.push([module.id, ".tip {\n  position: fixed;\n  z-index: 199;\n  display: none; }\n  .tip .tip-show {\n    z-index: 1;\n    color: #FFF;\n    position: fixed;\n    white-space: nowrap;\n    text-align: center;\n    background-color: rgba(0, 0, 0, 0.65);\n    padding: 14px 16px;\n    top: 50%;\n    left: 50%;\n    border-radius: 6px;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .tip .tip-back {\n    display: none;\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.65); }\n  .tip.has-back .tip-back {\n    display: block; }\n  .tip.has-loading .tip-back {\n    display: block;\n    background-color: transparent; }\n  .tip.has-loading .tip-show {\n    width: 74px;\n    height: 74px;\n    background-color: rgba(0, 0, 0, 0.78); }\n  .tip.show {\n    display: block;\n    -webkit-animation-name: fadeIn;\n    animation-name: fadeIn;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .tip.hide {\n    display: none;\n    -webkit-animation-name: fadeOut;\n    animation-name: fadeOut;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@-webkit-keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@-webkit-keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n\n@keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n", ""]);
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	/*
@@ -1906,7 +2121,7 @@
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -2131,7 +2346,7 @@
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports) {
 
 	/**
@@ -2226,7 +2441,7 @@
 	});
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var scroll = module.exports = (function (window, document, Math) {
@@ -4200,10 +4415,10 @@
 	};
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(20);
+	__webpack_require__(21);
 
 	module.exports = (function() {
 	    var Slider = function(el, options) {
@@ -4331,16 +4546,16 @@
 	})();
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(21);
+	var content = __webpack_require__(22);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -4357,17 +4572,17 @@
 	}
 
 /***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(15)();
-	exports.push([module.id, "mg-slider, .slider {\n  width: 100%;\n  font-size: 0;\n  overflow: hidden; }\n  mg-slider .slider_scroll, .slider .slider_scroll {\n    font-size: 0em;\n    display: inline;\n    height: 100%;\n    white-space: nowrap; }\n    mg-slider .slider_scroll.hasInit, .slider .slider_scroll.hasInit {\n      display: block; }\n    mg-slider .slider_scroll .slider-item, .slider .slider_scroll .slider-item {\n      display: inline-block; }\n  mg-slider .slider-item, .slider .slider-item {\n    display: none;\n    width: 100%; }\n    mg-slider .slider-item:first-child, .slider .slider-item:first-child {\n      display: inline-block; }\n    mg-slider .slider-item img, .slider .slider-item img {\n      width: 100%; }\n", ""]);
-
-/***/ },
 /* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(23);
+	exports = module.exports = __webpack_require__(16)();
+	exports.push([module.id, "mg-slider, .slider {\n  width: 100%;\n  font-size: 0;\n  overflow: hidden; }\n  mg-slider .slider_scroll, .slider .slider_scroll {\n    font-size: 0em;\n    display: inline;\n    height: 100%;\n    white-space: nowrap; }\n    mg-slider .slider_scroll.hasInit, .slider .slider_scroll.hasInit {\n      display: block; }\n    mg-slider .slider_scroll .slider-item, .slider .slider_scroll .slider-item {\n      display: inline-block; }\n  mg-slider .slider-item, .slider .slider-item {\n    display: none;\n    width: 100%; }\n    mg-slider .slider-item:first-child, .slider .slider-item:first-child {\n      display: inline-block; }\n    mg-slider .slider-item img, .slider .slider-item img {\n      width: 100%; }\n", ""]);
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	__webpack_require__(24);
 
 	module.exports = (function() {
 	    var Modal = function(element, option) {
@@ -4458,16 +4673,16 @@
 	})();
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(24);
+	var content = __webpack_require__(25);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -4484,17 +4699,17 @@
 	}
 
 /***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(15)();
-	exports.push([module.id, ".modal {\n  position: fixed;\n  display: none;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  background: rgba(0, 0, 0, 0.6);\n  z-index: 99; }\n  .modal .modal_body {\n    width: 100%;\n    margin: 0;\n    display: block;\n    position: absolute;\n    background: #FFF; }\n  .modal.alignTop .modal_body {\n    top: 0; }\n  .modal.alignBottom .modal_body {\n    bottom: 0; }\n  .modal.alignCenter .modal_body {\n    width: auto;\n    max-width: 80%;\n    min-width: 60%;\n    max-height: 70%;\n    top: 50%;\n    left: 50%;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .modal.showIn {\n    display: block;\n    -webkit-animation-name: slideInUp;\n    animation-name: slideInUp;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .modal.hideOut {\n    display: none;\n    -webkit-animation-name: slideOutDown;\n    animation-name: slideOutDown;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@-webkit-keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n\n@keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n", ""]);
-
-/***/ },
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(26);
+	exports = module.exports = __webpack_require__(16)();
+	exports.push([module.id, ".modal {\n  position: fixed;\n  display: none;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  background: rgba(0, 0, 0, 0.6);\n  z-index: 99; }\n  .modal .modal_body {\n    width: 100%;\n    margin: 0;\n    display: block;\n    position: absolute;\n    background: #FFF; }\n  .modal.alignTop .modal_body {\n    top: 0; }\n  .modal.alignBottom .modal_body {\n    bottom: 0; }\n  .modal.alignCenter .modal_body {\n    width: auto;\n    max-width: 80%;\n    min-width: 60%;\n    max-height: 70%;\n    top: 50%;\n    left: 50%;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .modal.showIn {\n    display: block;\n    -webkit-animation-name: slideInUp;\n    animation-name: slideInUp;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .modal.hideOut {\n    display: none;\n    -webkit-animation-name: slideOutDown;\n    animation-name: slideOutDown;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@keyframes slideInUp {\n  0% {\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0);\n    visibility: visible; }\n  100% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); } }\n\n@-webkit-keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n\n@keyframes slideOutDown {\n  0% {\n    -webkit-transform: translate3d(0, 0, 0);\n    transform: translate3d(0, 0, 0); }\n  100% {\n    visibility: hidden;\n    -webkit-transform: translate3d(0, 100%, 0);\n    transform: translate3d(0, 100%, 0); } }\n", ""]);
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	__webpack_require__(27);
 
 	module.exports = (function() {
 	    var Confirm = function(el, options) {
@@ -4592,16 +4807,16 @@
 	})();
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(27);
+	var content = __webpack_require__(28);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -4618,14 +4833,14 @@
 	}
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(15)();
+	exports = module.exports = __webpack_require__(16)();
 	exports.push([module.id, ".confirm {\n  display: block;\n  overflow: hidden;\n  padding-top: 44px;\n  border-radius: 5px; }\n  .confirm .content, .confirm .footer {\n    position: static; }\n  .confirm .content, .confirm .footer {\n    background: #FFF; }\n  .confirm .content {\n    font-size: 16px;\n    padding: 16px; }\n  .confirm .footer, .confirm .bar-footer {\n    padding: 10px;\n    padding-top: 0;\n    display: -webkit-box;\n    display: -webkit-flex;\n    display: -ms-flexbox;\n    display: flex;\n    margin: -5px;\n    -webkit-box-orient: horizontal;\n    -webkit-box-direction: normal;\n    -webkit-flex-direction: row;\n    -ms-flex-direction: row;\n    flex-direction: row; }\n    .confirm .footer .button, .confirm .bar-footer .button {\n      -webkit-box-flex: 1;\n      -webkit-flex: 1;\n      -ms-flex: 1;\n      flex: 1;\n      margin: 5px; }\n  .confirm .button {\n    margin: 0; }\n", ""]);
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -4953,10 +5168,10 @@
 	};
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(30);
+	__webpack_require__(31);
 
 	module.exports = (function() {
 	    var Select = function(el, opt) {
@@ -5144,16 +5359,16 @@
 	})();
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(31);
+	var content = __webpack_require__(32);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -5170,14 +5385,14 @@
 	}
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(15)();
+	exports = module.exports = __webpack_require__(16)();
 	exports.push([module.id, ".select {\n  overflow: hidden; }\n  .select .item_body {\n    margin-bottom: 0; }\n  .select.modal_body {\n    max-height: 45%; }\n", ""]);
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* 硬件调用分装方法 */
@@ -5186,7 +5401,7 @@
 	    // 加载相关方法文件
 	    function loadRequire(call) {
 	        return function () {
-	            __webpack_require__(33);        // 图像操作
+	            __webpack_require__(34);        // 图像操作
 
 	            if (typeof call == "function") call();
 	        }
@@ -5263,13 +5478,13 @@
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* 摄像头相关硬件操作封装 */
 
 	module.exports = (function() {
-	    __webpack_require__(34);
+	    __webpack_require__(35);
 
 	    var _camera = $plug.camera = {},
 	        $load   = $.tip("", {type: "loading"}),
@@ -5319,7 +5534,7 @@
 	            }
 	        }
 
-	        $html = $(__webpack_require__(36));
+	        $html = $(__webpack_require__(37));
 	        modal = $.modal($html.find(".camera_open_modal"));
 	        rview = $.modal($html.find(".camera_review_modal"));
 
@@ -5409,16 +5624,16 @@
 	})();
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(35);
+	var content = __webpack_require__(36);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(16)(content, {});
+	var update = __webpack_require__(17)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -5435,17 +5650,17 @@
 	}
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(15)();
+	exports = module.exports = __webpack_require__(16)();
 	exports.push([module.id, ".camera_open_modal {\n  font-size: 16px;\n  background-color: #ddd !important;\n  text-align: center;\n  line-height: 44px; }\n  .camera_open_modal > * {\n    background-color: #fff; }\n  .camera_open_modal .footer {\n    margin-top: 10px; }\n\n.camera_review_modal {\n  height: 100%;\n  width: 100%;\n  padding-bottom: 72px;\n  overflow: hidden; }\n  .camera_review_modal .imgView {\n    width: 100%;\n    height: 100%;\n    padding: 20px; }\n    .camera_review_modal .imgView .view {\n      position: relative;\n      top: 50%;\n      left: 50%;\n      -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n      transform: translate(-50%, -50%);\n      max-width: 100%;\n      max-height: 100%; }\n  .camera_review_modal .footer {\n    bottom: 0;\n    left: 0;\n    width: 100%;\n    padding: 14px;\n    position: absolute; }\n    .camera_review_modal .footer .button {\n      margin: 0 10px;\n      border-radius: 8px; }\n", ""]);
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"camera_open_modal\">\n    <p class=\"openTake retina-border-bottom\">拍照</p>\n    <p class=\"openView\">从手机相册选择</p>\n\n    <p class=\"cancel footer\">取消</p>\n</div>\n\n<div class=\"camera_review_modal\">\n    <div class=\"imgView\">\n        <img src=\"xxxHTMLLINKxxx0.0062698281835764650.33260115631856024xxx\" class=\"view\"/>\n    </div>\n\n    <div class=\"footer retina-border-top layout-split\">\n        <a class=\"button cancel\">取&nbsp;&nbsp;&nbsp;&nbsp;消</a>\n        <a class=\"button upload\">上&nbsp;&nbsp;&nbsp;&nbsp;传</a>\n    </div>\n</div>";
+	module.exports = "<div class=\"camera_open_modal\">\n    <p class=\"openTake retina-border-bottom\">拍照</p>\n    <p class=\"openView\">从手机相册选择</p>\n\n    <p class=\"cancel footer\">取消</p>\n</div>\n\n<div class=\"camera_review_modal\">\n    <div class=\"imgView\">\n        <img src=\"xxxHTMLLINKxxx0.32910515903495250.7237532550934702xxx\" class=\"view\"/>\n    </div>\n\n    <div class=\"footer retina-border-top layout-split\">\n        <a class=\"button cancel\">取&nbsp;&nbsp;&nbsp;&nbsp;消</a>\n        <a class=\"button upload\">上&nbsp;&nbsp;&nbsp;&nbsp;传</a>\n    </div>\n</div>";
 
 /***/ }
 /******/ ]);
