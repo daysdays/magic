@@ -1024,24 +1024,26 @@ textarea {
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative; }
-    .list .item.item-avator .line:nth-child(2),
-    .list .item.item-avator-large .line:nth-child(2) {
+    .list .item.item-avator .line:first-of-type,
+    .list .item.item-avator-large .line:first-of-type {
       top: -3px; }
-    .list .item.item-avator .line:last-child,
-    .list .item.item-avator-large .line:last-child {
+    .list .item.item-avator .line:last-of-type,
+    .list .item.item-avator-large .line:last-of-type {
       bottom: -3px; }
   .list .item.item-avator {
     min-height: 76px;
     padding-left: 76px; }
     .list .item.item-avator .avator {
-      width: 52px; }
+      width: 52px;
+      height: 52px; }
     .list .item.item-avator .line {
       line-height: 26px; }
   .list .item.item-avator-large {
     min-height: 90px;
     padding-left: 90px; }
     .list .item.item-avator-large .avator {
-      width: 66px; }
+      width: 66px;
+      height: 66px; }
     .list .item.item-avator-large .line {
       line-height: 22px; }
   .list.list-embed .item.item-avator .avator,

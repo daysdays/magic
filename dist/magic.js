@@ -52,8 +52,9 @@
 	        var magic = function(select) {
 	                return new magic.fn._init(select);
 	            },
-	            _UTIL = __webpack_require__(2),
-	            _DOM  = __webpack_require__(3);
+	            _UTIL  = __webpack_require__(2),
+	            _DOM   = __webpack_require__(3),
+	            _EVENT = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"event\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	        magic.fn = magic.prototype = {
 	            constructor: Magic,
@@ -169,14 +170,34 @@
 	            },
 
 	            /* 对象事件操作的简单方法 */
-	            on: function(type, fn, capture) {
-	                _UTIL.addEvent(this[0], type, fn, capture);
+	            on: function(type, fn, data) {
+	                if (this[0] /* 有对象才绑定 */) {
+	                    _EVENT.bind(this[0], type, fn, data);
+	                }
 
 	                return this;
 	            },
 
-	            off: function(type, fn, capture) {
-	                _UTIL.removeEvent(this[0], type, fn, capture);
+	            off: function(type, fn) {
+	                if (this[0] /* 有对象才绑定 */) {
+	                    _EVENT.unbind(this[0], type, fn);
+	                }
+
+	                return this;
+	            },
+
+	            once: function(type, fn, data) {
+	                if (this[0] /* 有对象才绑定 */) {
+	                    _EVENT.once(this[0], type, fn, data);
+	                }
+
+	                return this;
+	            },
+
+	            trigger: function(type, event) {
+	                if (this[0] /* 有对象才绑定 */) {
+	                    _EVENT.trigger(this[0], type, event);
+	                }
 
 	                return this;
 	            },
@@ -219,10 +240,11 @@
 
 	            /* 获取当前元素在父类中的位置 */
 	            index : function() {
-	                var parent = this.parent()[0], items;
+	                var parent = this.parent(), items;
 
 	                if (parent) {
-	                    items = parent.children;
+	                    parent = parent[0];
+	                    items  = parent.children;
 
 	                    for(var i=0; i<items.length; i++) {
 	                        if (items[i] == this[0]) {
@@ -248,17 +270,26 @@
 
 	            /* 为对象添加HTML对象或者字符串 */
 	            append: function(text) {
+	                if (text instanceof Magic) {
+	                    text = text[0];
+	                }
 	                this[0] = _DOM.append(this[0], text);
 	                return this;
 	            },
 
 	            insertBefore: function(text) {
+	                if (text instanceof Magic) {
+	                    text = text[0];
+	                }
 	                this[0] = _DOM.prepend(this[0], text);
 	                return this;
 	            },
 
 	            /* 元素前插入对象操作的方法 */
 	            before: function(html) {
+	                if (text instanceof Magic) {
+	                    text = text[0];
+	                }
 	                _DOM.before(this[0], html);
 
 	                return this;
@@ -266,6 +297,9 @@
 
 	            /* 元素后插入对象操作的方法 */
 	            after: function(html) {
+	                if (html instanceof Magic) {
+	                    html = html[0];
+	                }
 	                _DOM.after(this[0], html);
 
 	                return this;
@@ -273,6 +307,9 @@
 
 	            /* 元素外包裹元素 */
 	            wrap: function(html) {
+	                if (html instanceof Magic) {
+	                    html = html[0];
+	                }
 	                _DOM.wrap(this[0], html);
 
 	                return this;
@@ -280,6 +317,9 @@
 
 	            /* 选择元素的所有子元素外包裹dom */
 	            wrapAll: function(html) {
+	                if (html instanceof Magic) {
+	                    html = html[0];
+	                }
 	                _DOM.wrapAll(this[0], html);
 
 	                return this;
@@ -390,6 +430,10 @@
 	                })
 
 	                return defer;   // 返回参数
+	            },
+
+	            isfun: function(fun) {
+	                return typeof fun == "function";
 	            }
 	        })
 
@@ -399,7 +443,9 @@
 	    window.$ = Magic;
 	})(window);
 
-	__webpack_require__(11);      // 加载核心UI组件
+	__webpack_require__(11);       // 加载核心UI组件
+	__webpack_require__(32);         // 加载硬件扩展方法
+
 
 /***/ },
 /* 1 */
@@ -452,7 +498,16 @@
 	Array.prototype.findBy = function(key, val, index) {
 	    for(var i in this) {
 	        if (this[i][key] == val) {
-	            return index?i:this[i];
+	            if (index != undefined) {
+	                if (index === true) {
+	                    return i;   // true 返回下标
+	                } else if (typeof index == "string") {
+	                    // 尝试返回指定的值
+	                    return this[i][index];
+	                }
+	            }
+
+	            return this[i]; // 默认返回对象
 	        }
 	    }
 
@@ -1052,7 +1107,8 @@
 
 	    if (typeof select == "string") {
 	        var elname = select.toLowerCase(); // 转为字符串
-	        content = el instanceof Element ? el : document;
+	        content = el instanceof Element ||
+	                  el instanceof DocumentFragment ? el : document;
 
 	        if (elname == "body") {
 	            result = document.body;
@@ -1592,6 +1648,8 @@
 /* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
+	window.$u = {};                             // 定义一个全局的快捷UI对象
+
 	__webpack_require__(17);              // 加载常用组件的点击事件
 	__webpack_require__(18);           // 加载滚动UI组件scroll
 	__webpack_require__(19);              // 加载轮播UI组件slider
@@ -1663,6 +1721,10 @@
 	        if (opt.type == "loading") {
 	            opt.live = true; // loading 类型一直显示
 	        }
+	        $("#"+cls).on("tap", function(e) {
+	            e.preventDefault();     // 终止默认动作
+	        })
+
 
 	        // 将默认背景色存储下来，用于后续显示默认背景色
 	        this.backStyle = this.backHandle.css("background-color");
@@ -1741,6 +1803,16 @@
 	        $.extend({tip: function(text, option) {
 	            return new Tip(text, option).init();
 	        }})
+
+	        /* 绑定快捷UI操作方法 */
+	        var $tip = new Tip("").init();
+	        $u.tip = function (text, option) {
+	            $tip.show(text, option);
+	        }
+
+	        $u.tipHide = function () {
+	            $tip.hide();
+	        }
 	    };
 	})();
 
@@ -1775,7 +1847,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(15)();
-	exports.push([module.id, ".tip {\n  position: fixed;\n  z-index: 99;\n  display: none; }\n  .tip .tip-show {\n    z-index: 1;\n    color: #FFF;\n    position: fixed;\n    white-space: nowrap;\n    text-align: center;\n    background-color: rgba(0, 0, 0, 0.65);\n    padding: 14px 16px;\n    top: 50%;\n    left: 50%;\n    border-radius: 6px;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .tip .tip-back {\n    display: none;\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.65); }\n  .tip.has-back .tip-back {\n    display: block; }\n  .tip.has-loading .tip-back {\n    display: block;\n    background-color: transparent; }\n  .tip.has-loading .tip-show {\n    width: 74px;\n    height: 74px;\n    background-color: rgba(0, 0, 0, 0.78); }\n  .tip.show {\n    display: block;\n    -webkit-animation-name: fadeIn;\n    animation-name: fadeIn;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .tip.hide {\n    display: none;\n    -webkit-animation-name: fadeOut;\n    animation-name: fadeOut;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@-webkit-keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@-webkit-keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n\n@keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n", ""]);
+	exports.push([module.id, ".tip {\n  position: fixed;\n  z-index: 199;\n  display: none; }\n  .tip .tip-show {\n    z-index: 1;\n    color: #FFF;\n    position: fixed;\n    white-space: nowrap;\n    text-align: center;\n    background-color: rgba(0, 0, 0, 0.65);\n    padding: 14px 16px;\n    top: 50%;\n    left: 50%;\n    border-radius: 6px;\n    -webkit-transform: translate(-50%, -50%);\n    -ms-transform: translate(-50%, -50%);\n    transform: translate(-50%, -50%); }\n  .tip .tip-back {\n    display: none;\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.65); }\n  .tip.has-back .tip-back {\n    display: block; }\n  .tip.has-loading .tip-back {\n    display: block;\n    background-color: transparent; }\n  .tip.has-loading .tip-show {\n    width: 74px;\n    height: 74px;\n    background-color: rgba(0, 0, 0, 0.78); }\n  .tip.show {\n    display: block;\n    -webkit-animation-name: fadeIn;\n    animation-name: fadeIn;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n  .tip.hide {\n    display: none;\n    -webkit-animation-name: fadeOut;\n    animation-name: fadeOut;\n    -webkit-animation-duration: 0.3s;\n    animation-duration: 0.3s; }\n\n@-webkit-keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@keyframes fadeIn {\n  0% {\n    opacity: 0; }\n  100% {\n    opacity: 1; } }\n\n@-webkit-keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes fadeOut {\n  0% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@-webkit-keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n\n@keyframes rotate {\n  from {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg); }\n  to {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg); } }\n", ""]);
 
 /***/ },
 /* 15 */
@@ -2109,6 +2181,7 @@
 	    }
 
 	    $document.on("touchmove", $.delayCall(function(e) {
+	        e.preventDefault(); // 修复微信下拉显示网页地址
 	        var $target = $(e.target);
 
 	        do {
@@ -2127,11 +2200,13 @@
 	        ct = $.getTime() - tap.startT;
 
 	        if (cx<5 && cy < 5 && ct < 200) {
-	            var ev = new Event('tap');
-	            
+	            var ev = document.createEvent('Event');
+	            ev.initEvent("tap", true, true);
 	            ev.pageX  = touch.pageX;
 	            ev.pageY  = touch.pageY;
+
 	            ev._target = e.target;
+
 	            ev.preventDefault = function() {
 	                e.preventDefault();
 	            }
@@ -2139,31 +2214,14 @@
 	                e.stopPropagation();    // 终止冒泡
 	            }
 
-	            do {
-	                tagname = $target[0].tagName;
-	                $target[0].dispatchEvent(ev);   // 触发 Tap 事件
-
-	                clearActive($target);   // 清除激活类
-
-	                if (tagname === "A") {
-	                    e.preventDefault();
-	                    var tohref = $target.attr("href");
-	                    // 手动跳转到指定页面
-	                    if (tohref) {
-	                        location.href = tohref;
-	                        return false;   // 中止后续检测
-	                    }
-	                }
-
-	                $target = $target.parent();     // 向上递归检测
-	            } while($target[0] && $target[0] != this);
-	        } else {
-	            do {
-	                clearActive($target);   // 清除激活类
-
-	                $target = $target.parent();     // 向上递归检测
-	            } while($target[0] && $target[0] != this);
+	            e.target.dispatchEvent(ev);
 	        }
+
+	        do {
+	            clearActive($target);   // 清除激活类
+
+	            $target = $target.parent();     // 向上递归检测
+	        } while($target[0] && $target[0] != this);
 	    });
 	});
 
@@ -4132,7 +4190,8 @@
 	        option = $.extend({
 	            bindToWrapper: true,
 	            scrollbars: true,
-	            fadeScrollbars: true
+	            fadeScrollbars: true,
+	            preventDefault: false
 	        }, option);
 
 	        this.data("ui_scroll", new scroll(this[0], option));
@@ -4344,7 +4403,7 @@
 	        if (opt.autoHide /* 绑定默认关闭方法 */) {
 	            var that = this, ele = this.el[0];
 	            that.el.on("tap", function(e) {
-	                e.preventDefault();     // 阻止默认动作
+	                e.preventDefault(); // 阻止默认动作
 	                if (e.target == ele) that.hide();
 	            })
 	        }
@@ -4923,7 +4982,7 @@
 	        item = that.el[0].childNodes;
 	        that.el.addClass("list select");   // 设置样式
 	        for(var i=0; i<item.length; i++) {
-	            if (item.nodeType !== 1) continue;
+	            if (item[i].nodeType !== 1) continue;
 
 	            $(item[i]).addClass("item");
 	        }
@@ -4937,7 +4996,7 @@
 	        }
 
 	        if (opt.mult) rets = {val:[], pos:[]};
-	        that.set(opt.init || null); // 初始化
+	        that.set(opt.init !== undefined ? opt.init : null); // 初始化
 
 	        that.el.on("tap", function(e) {
 	            var pos = $(e._target).index();
@@ -4978,7 +5037,9 @@
 	        rets = mult ? {val:[], pos: []} : {};
 	        sets = mult && !Array.isArray(sets) ? [] : sets;
 	        cval = cval !== undefined ? cval :
-	                    (mult?isNaN(sets[0]):isNaN(sets));
+	                    (sets == null ? true :
+	                        (mult?isNaN(sets[0]):isNaN(sets))
+	                    );
 
 	        for(var i=0; i<item.length; i++) {
 	            if (item[i].nodeType !== 1) continue;
@@ -5012,7 +5073,9 @@
 	                }
 	            }
 
-	            $icon.switchClass(cls, select);
+	            if ($icon.length > 0) {
+	                $icon.switchClass(cls, select);
+	            }
 	        }
 
 	        this.rets = rets;   // 更新存储的值
@@ -5112,6 +5175,277 @@
 
 	exports = module.exports = __webpack_require__(15)();
 	exports.push([module.id, ".select {\n  overflow: hidden; }\n  .select .item_body {\n    margin-bottom: 0; }\n  .select.modal_body {\n    max-height: 45%; }\n", ""]);
+
+/***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* 硬件调用分装方法 */
+
+	(function() {
+	    // 加载相关方法文件
+	    function loadRequire(call) {
+	        return function () {
+	            __webpack_require__(33);        // 图像操作
+
+	            if (typeof call == "function") call();
+	        }
+	    }
+
+	    var $m = window.$plug = {
+	        runtime  : "web",
+	        platform : "",
+	        osversion: ""
+	    };
+
+	    /* 初始化运行环境等信息 */
+	    if (window.cordova /* cordova环境 */) {
+	        $m.platform  = cordova.platformId;
+	        $m.osversion = cordova.platformVersion;
+	        $m.runtime   = "phonegap";
+	    } else {
+	        var agent = window.navigator.userAgent.toLowerCase(), osver;
+	        if (agent.match(/MicroMessenger/i) /* 微信环境 */) {
+	            $m.runtime = "weixin";
+	        }
+
+	        if (agent.match(/IPhone/i)) {
+	            $m.platform = "ios";
+	            osver = agent.match(/cpu iphone os \S*/i)[0];
+	            osver = osver.replace(/cpu iphone os /i, "");
+	            $m.osversion = osver.replace("_", ".");
+	        } else if (agent.match(/Android/i)) {
+	            $m.platform = "android";
+	            osver = agent.match(/android \S*(?=;)/i)[0];
+	            $m.osversion = osver.replace(/android /i, "");
+	        }
+	    }
+
+	    /* 组件初始化方法 */
+	    $m.init = function(weixin, call) {
+	        if ($m.runtime == "weixin" && weixin) {
+	            var url = location.href.split('#')[0];
+	            $.jsonp(weixin, {url:url}).then(function(rdata) {
+	                wx.config({
+	                    debug: false,
+	                    appId: rdata.appId,
+	                    timestamp: rdata.timestamp,
+	                    nonceStr: rdata.nonceStr,
+	                    signature: rdata.signature,
+	                    jsApiList:  [
+	                        "scanQRcode",
+	                        "chooseImage",
+	                        "previewImage",
+	                        "uploadImage",
+	                        "downloadImage"
+	                    ]
+	                });
+
+	                wx.error(function (res) {
+	                    $u.tip("初始化失败，"+res.errMsg, { show: 3000 });
+	                    $m.runtime = "web"; loadRequire(call)();
+	                })
+	            })
+	        }
+
+	        /* 初始化加载相关具体方法和执行回调 */
+	        if ($m.runtime == "phonegap") {
+	            $(document).on("deviceready", loadRequire(call));
+	        } else if ($m.runtime == "weixin" && weixin) {
+	            wx.ready(loadRequire(call));
+	        } else {
+	            loadRequire(call)();    // 直接加载相关文件
+	        }
+
+	        return this;
+	    }
+	})();
+
+
+/***/ },
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* 摄像头相关硬件操作封装 */
+
+	module.exports = (function() {
+	    __webpack_require__(34);
+
+	    var _camera = $plug.camera = {},
+	        $load   = $.tip("", {type: "loading"}),
+	        modal, rview, $html, $view;
+
+	    if ($plug.runtime == "phonegap") {
+	        var camera  = navigator.camera,
+	        destype = camera.DestinationType,
+	        picsouce= camera.PictureSourceType,
+	        platform= $plug.platform;
+	    }
+
+	    if ($plug.runtime != "phonegap" && $plug.runtime != "weixin") {
+	        _camera.take = _camera.view = _camera.upload = _camera.hide =
+	            function (successCall, failCall) {
+	                var showDefaultTip = true;
+
+	                if (typeof failCall == "function") {
+	                    showDefaultTip = failCall();
+	                }
+
+	                if (showDefaultTip) {
+	                    $u.tip("抱歉，当前环境不支持此操作！");
+	                }
+	            }
+	    } else {
+	        function makeViewAction(call) {
+	            return function(res) {
+	                var resfix = $plug.runtime == "weixin" ?
+	                                res.localIds[0] :
+	                                "data:image/jpeg;base64,"+res;
+
+	                rview.el.find(".upload").off("tap")
+	                    .on("tap", function() {
+	                        if (typeof call == "function") {
+	                            call(resfix); // 执行回调
+	                        }
+	                        // 显示loading动画
+	                        $load.show();
+	                    })
+	                $view.attr("src", res.localIds[0]);
+
+	                /* 尝试隐藏选择框 */
+	                if (modal && modal.hide) modal.hide();
+
+	                rview.show();   // 设置完毕后显示预览的窗口
+	            }
+	        }
+
+	        $html = $(__webpack_require__(36));
+	        modal = $.modal($html.find(".camera_open_modal"));
+	        rview = $.modal($html.find(".camera_review_modal"));
+
+	        modal.el.find(".cancel").on("tap", function () {
+	            modal.hide();   // 隐藏弹框选择显示
+	        })
+	        $view = rview.el.find(".view");
+	        rview.el.find(".cancel").on("tap", function () {
+	            rview.hide();   // 隐藏预览窗口显示
+	        })
+
+	        /**
+	         * 隐藏预览窗口和操作窗口
+	         * */
+	        _camera.hide = function () {
+	            if (modal && modal.hide) modal.hide();
+	            if (rview && rview.hide) rview.hide();
+	            if ($load && $load.hide) $load.hide();
+	        }
+
+	        /**
+	         * 弹出选择框，让用户选择方式
+	         * */
+	        _camera.upload = $plug.runtime == "weixin" ?
+	            function (successCall, failCall) {
+	                var viewAction = makeViewAction(successCall);
+
+	                wx.chooseImage({
+	                    count: 1, // 默认9
+	                    sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+	                    sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+	                    success: viewAction,
+	                    cancel: failCall,
+	                    fail: failCall
+	                });
+	            } :
+	            function (successCall, failCall) {
+	                modal.el.find(".openTake").off("tap")
+	                    .on("tap", function() {
+	                        _camera.take(successCall, failCall);
+	                    })
+	                modal.el.find(".openView").off("tap")
+	                    .on("tap", function() {
+	                        _camera.view(successCall, failCall);
+	                    })
+
+	                modal.show();   // 回调更新完毕，弹出选择菜单
+	            };
+
+
+	        /**
+	         * 直接调用照相方法
+	         * */
+	        _camera.take = $plug.runtime == "weixin" ? _camera.upload :
+	            function(successCall, failCall) {
+	                var viewAction = makeViewAction(successCall);
+
+	                camera.getPicture(viewAction, failCall, {
+	                    quality: 10,
+	                    allowEdit: false,
+	                    destinationType: destype.DATA_URL
+	                });
+	            };
+
+	        /**
+	         * 直接调用选择图片方法
+	         * */
+	        _camera.view = $plug.runtime == "weixin" ? _camera.upload :
+	            function (successCall, failCall) {
+	                var viewAction = makeViewAction(successCall);
+
+	                if (platform == 'android'){
+	                    camera.getPicture(viewAction, failCall, {
+	                        quality: 50,
+	                        destinationType: destype.DATA_URL,
+	                        sourceType: picsouce.SAVEDPHOTOALBUM
+	                    });
+	                } else if (platform == 'ios'){
+	                    camera.getPicture(viewAction, failCall, {
+	                        quality: 50,
+	                        destinationType: destype.DATA_URL,
+	                        sourceType: picsouce.SAVEDPHOTOALBUM
+	                    });
+	                }
+	            };
+	    }
+	})();
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(35);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(16)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../node_modules/css-loader/index.js!./../../../node_modules/sass-loader/index.js!./../../../node_modules/autoprefixer-loader/index.js!./style.scss", function() {
+				var newContent = require("!!./../../../node_modules/css-loader/index.js!./../../../node_modules/sass-loader/index.js!./../../../node_modules/autoprefixer-loader/index.js!./style.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(15)();
+	exports.push([module.id, ".camera_open_modal {\n  font-size: 16px;\n  background-color: #ddd !important;\n  text-align: center;\n  line-height: 44px; }\n  .camera_open_modal > * {\n    background-color: #fff; }\n  .camera_open_modal .footer {\n    margin-top: 10px; }\n\n.camera_review_modal {\n  height: 100%;\n  width: 100%;\n  padding-bottom: 72px;\n  overflow: hidden; }\n  .camera_review_modal .imgView {\n    width: 100%;\n    height: 100%;\n    padding: 20px; }\n    .camera_review_modal .imgView .view {\n      position: relative;\n      top: 50%;\n      left: 50%;\n      -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n      transform: translate(-50%, -50%);\n      max-width: 100%;\n      max-height: 100%; }\n  .camera_review_modal .footer {\n    bottom: 0;\n    left: 0;\n    width: 100%;\n    padding: 14px;\n    position: absolute; }\n    .camera_review_modal .footer .button {\n      margin: 0 10px;\n      border-radius: 8px; }\n", ""]);
+
+/***/ },
+/* 36 */
+/***/ function(module, exports) {
+
+	module.exports = "<div class=\"camera_open_modal\">\n    <p class=\"openTake retina-border-bottom\">拍照</p>\n    <p class=\"openView\">从手机相册选择</p>\n\n    <p class=\"cancel footer\">取消</p>\n</div>\n\n<div class=\"camera_review_modal\">\n    <div class=\"imgView\">\n        <img src=\"xxxHTMLLINKxxx0.0062698281835764650.33260115631856024xxx\" class=\"view\"/>\n    </div>\n\n    <div class=\"footer retina-border-top layout-split\">\n        <a class=\"button cancel\">取&nbsp;&nbsp;&nbsp;&nbsp;消</a>\n        <a class=\"button upload\">上&nbsp;&nbsp;&nbsp;&nbsp;传</a>\n    </div>\n</div>";
 
 /***/ }
 /******/ ]);

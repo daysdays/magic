@@ -1321,11 +1321,11 @@ $tabs-positive-text:              $button-positive-text !default;
                 @include text-ellipsis();
                 position: relative;
 
-                &:nth-child(2) {
+                &:first-of-type {
                     top: -$item-avator-fix;
                 }
 
-                &:last-child {
+                &:last-of-type {
                     bottom: -$item-avator-fix;
                 }
             }
@@ -1337,6 +1337,7 @@ $tabs-positive-text:              $button-positive-text !default;
 
             .avator {
                 width: $item-avator;
+                height: $item-avator;
             }
 
             .line {
@@ -1350,6 +1351,7 @@ $tabs-positive-text:              $button-positive-text !default;
 
             .avator {
                 width: $item-avator-large;
+                height: $item-avator-large;
             }
 
             .line {
